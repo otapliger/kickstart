@@ -29,7 +29,7 @@ apk add $PKGS
 
 # Enable services
 
-dinitctl enable {networkmanager}
+dinitctl enable {networkmanager,swww}
 
 # Set firewall
 
