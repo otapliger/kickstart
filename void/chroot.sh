@@ -1,5 +1,5 @@
 #!/usr/bin/env -S bash -e
-PKGS="alacritty asciinema bash-completion celluloid cmake elogind ffmpeg firefox fish-shell fuzzel fzf gamescope git imv intel-media-driver jq mako mesa nemo ninja niri noto-fonts-cjk noto-fonts-cjk-variable noto-fonts-emoji noto-fonts-ttf noto-fonts-ttf-variable openntpd python3 python3-devel rio ripgrep rustup starship swww vim ufw uv vulkan-loader wireplumber xdg-desktop-portal-gnome xdg-user-dirs xtools xwayland-satellite yt-dlp zoxide"
+PKGS="alacritty asciinema bash-completion celluloid cmake elogind ffmpeg firefox fish-shell fuzzel fzf gamescope git hunspell hunspell-en imv intel-media-driver jq mako mesa nemo ninja niri noto-fonts-cjk noto-fonts-cjk-variable noto-fonts-emoji noto-fonts-ttf noto-fonts-ttf-variable openntpd python3 python3-devel rio ripgrep rustup starship swww vim ufw uv vulkan-loader wireplumber xdg-desktop-portal-gnome xdg-user-dirs xtools xwayland-satellite yt-dlp zoxide"
 
 mount --types efivarfs none /sys/firmware/efi/efivars
 
