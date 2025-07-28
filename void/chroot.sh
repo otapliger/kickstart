@@ -1,5 +1,5 @@
 #!/usr/bin/env -S bash -e
-PKGS="alacritty asciinema bash-completion celluloid cmake elogind ffmpeg firefox fish-shell fuzzel fzf gamescope git hunspell hunspell-en imv intel-media-driver jq mako meld mesa mesa-vulkan-intel nemo ninja niri noto-fonts-cjk noto-fonts-cjk-variable noto-fonts-emoji noto-fonts-ttf noto-fonts-ttf-variable openntpd pipewire python3 python3-devel rio ripgrep rustup starship swww vim ufw uv vulkan-loader wireplumber xdg-desktop-portal-gnome xdg-user-dirs xtools xwayland-satellite yt-dlp zoxide"
+PKGS="alacritty asciinema bash-completion celluloid cmake elogind ffmpeg firefox fish-shell fuzzel fzf gamescope git hunspell hunspell-en imv intel-media-driver jq mako meld mesa mesa-vulkan-intel nemo ninja niri noto-fonts-cjk noto-fonts-cjk-variable noto-fonts-emoji noto-fonts-ttf noto-fonts-ttf-variable openntpd papirus-folders papirus-icon-theme pipewire python3 python3-devel rio ripgrep ruff rustup starship swww vim ufw uv vulkan-loader wireplumber xdg-desktop-portal-gnome xdg-user-dirs xtools xwayland-satellite yt-dlp zoxide"
 
 mount --types efivarfs none /sys/firmware/efi/efivars
 
@@ -141,4 +141,4 @@ chsh --shell /bin/bash root
 useradd --create-home --groups wheel,users,input,audio,video,network --shell /bin/fish $USERNAME
 
 USERHOME=/home/$USERNAME
-sudo -u $USERNAME mkdir -p $USERHOME/{Desktop,Downloads,Pictures,Videos,stuff}
+sudo -u $USERNAME mkdir -p $USERHOME/{.local/share/{fonts,icons,themes},stuff}
