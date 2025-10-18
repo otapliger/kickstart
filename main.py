@@ -11,7 +11,7 @@ from src.ansi_codes import green, red, reset, yellow, bold
 from src.ascii_art import void
 from src.steps import install
 from src.utils import error, info, load_defaults
-from src.context import InstallerContext
+from src.context import InstallerContext, Config
 from textwrap import dedent
 
 
@@ -24,19 +24,20 @@ class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
     options = action.option_strings
     if not options:
       return super()._format_action_invocation(action)
-    parts = []
+    parts: list[str] = []
     if len(options) == 1:
       parts.append(f"{'':4}{options[0]}")
     else:
       parts.append(f"{', '.join(options)}")
     if action.nargs != 0:
-      parts[-1] += f" {self._format_args(action, self._get_default_metavar_for_optional(action))}"
+      default_metavar = self._get_default_metavar_for_optional(action)
+      parts[-1] += f" {self._format_args(action, default_metavar)}"
     return parts[-1]
 
 
 def validate_url(url: str) -> bool:
   """Validate that a URL is properly formatted."""
-  if not url or not isinstance(url, str):
+  if not url:
     return False
 
   result = urllib.parse.urlparse(url)
@@ -58,7 +59,7 @@ def validate_timezone(timezone: str) -> bool:
 
 def validate_locale(locale: str) -> bool:
   """Validate locale format - supports various glibc locale formats."""
-  if not locale or not isinstance(locale, str):
+  if not locale:
     return False
 
   # Allow C/POSIX locales
@@ -94,21 +95,21 @@ def check_system_requirements() -> None:
     sys.exit(3)
 
 
-def validate_arguments(args: argparse.Namespace) -> None:
+def validate_arguments(config: Config) -> None:
   """Validate all command line arguments."""
-  errors = []
+  errors: list[str] = []
 
-  if not validate_url(args.repository):
-    errors.append(f"Invalid repository URL: {args.repository}")
+  if not validate_url(config.repository):
+    errors.append(f"Invalid repository URL: {config.repository}")
 
-  if not validate_timezone(args.timezone):
-    errors.append(f"Invalid timezone: {args.timezone} (expected format: Region/City)")
+  if not validate_timezone(config.timezone):
+    errors.append(f"Invalid timezone: {config.timezone} (expected format: Region/City)")
 
-  if not validate_locale(args.locale):
-    errors.append(f"Invalid locale: {args.locale} (expected format: language[_COUNTRY][.encoding][@modifier])")
+  if not validate_locale(config.locale):
+    errors.append(f"Invalid locale: {config.locale} (expected format: language[_COUNTRY][.encoding][@modifier])")
 
-  if not validate_libc(args.libc):
-    errors.append(f"Invalid libc: {args.libc} (must be 'glibc' or 'musl')")
+  if not validate_libc(config.libc):
+    errors.append(f"Invalid libc: {config.libc} (must be 'glibc' or 'musl')")
 
   if errors:
     error("Invalid arguments provided:")
@@ -141,14 +142,14 @@ def create_argument_parser() -> argparse.ArgumentParser:
     """),
   )
 
-  parser.add_argument(
+  _ = parser.add_argument(
     "-d",
     "--dry",
     action="store_true",
     help="preview installation steps without executing commands or writing files",
     dest="dry",
   )
-  parser.add_argument(
+  _ = parser.add_argument(
     "--libc",
     metavar="LIBC",
     type=str,
@@ -156,7 +157,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     help="C library implementation (glibc or musl) [default: %(default)s]",
     dest="libc",
   )
-  parser.add_argument(
+  _ = parser.add_argument(
     "--repository",
     metavar="URL",
     type=str,
@@ -164,7 +165,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     help="override interactive mirror selection with specific repository URL [default: %(default)s]",
     dest="repository",
   )
-  parser.add_argument(
+  _ = parser.add_argument(
     "--timezone",
     metavar="TIMEZONE",
     type=str,
@@ -172,7 +173,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     help="system timezone in Region/City format [default: %(default)s]",
     dest="timezone",
   )
-  parser.add_argument(
+  _ = parser.add_argument(
     "--keymap",
     metavar="KEYMAP",
     type=str,
@@ -180,7 +181,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     help="keyboard layout for the system [default: %(default)s]",
     dest="keymap",
   )
-  parser.add_argument(
+  _ = parser.add_argument(
     "--locale",
     metavar="LOCALE",
     type=str,
@@ -188,7 +189,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     help="system locale (e.g., en_US, en_US.UTF-8, C, POSIX) [default: %(default)s]",
     dest="locale",
   )
-  parser.add_argument("--version", action="version", version="void.kickstart 0.1.0")
+  _ = parser.add_argument("--version", action="version", version="void.kickstart 0.1.0")
 
   return parser
 
@@ -202,7 +203,7 @@ def run_installation(ctx: InstallerContext) -> None:
     # Remove leading numbers and spaces to avoid duplication with progress counter
     step_name = step_name.lstrip("0123456789 ")
 
-    if ctx.args.dry:
+    if ctx.dry:
       info(f"[{i}/{total_steps}] {step_name}")
     else:
       info(f"[{i}/{total_steps}] {step_name}")
@@ -224,7 +225,7 @@ def run_installation(ctx: InstallerContext) -> None:
     except Exception as e:
       error(f"Step '{step_name}' failed with error: {e}")
       error("Installation cannot continue.")
-      if ctx.args.dry:
+      if ctx.dry:
         error("This error occurred during dry run - actual installation might fail.")
       sys.exit(1)
 
@@ -233,28 +234,29 @@ def main() -> None:
   """Main entry point for the installer."""
   parser = create_argument_parser()
   args = parser.parse_args()
+  config = Config.from_namespace(args)
 
   print(void)
   print(f"{green}Welcome to void.kickstart, a Void Linux installer.{reset}")
 
-  if args.dry:
+  if config.dry:
     print(f"{yellow}{bold}DRY RUN MODE{reset} - No actual changes will be made to your system")
 
   print()
 
-  validate_arguments(args)
+  validate_arguments(config)
 
-  if not args.dry:
+  if not config.dry:
     check_system_requirements()
   else:
     info("Skipping root and system checks in dry run mode")
 
-  ctx = InstallerContext(args)
+  ctx = InstallerContext(config)
 
   try:
     run_installation(ctx)
 
-    if args.dry:
+    if config.dry:
       print()
       info("Dry run completed successfully!")
       info("Run without --dry flag to perform actual installation.")

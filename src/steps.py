@@ -31,8 +31,8 @@ def step_01_settings(ctx: InstallerContext) -> None:
   ctx.user_name = set_user()
   ctx.user_pass = set_pass(ctx.user_name)
 
-  if ctx.args.repository != DEFAULTS["repository"]:
-    ctx.repository = ctx.args.repository
+  if ctx.config.repository != DEFAULTS["repository"]:
+    ctx.repository = ctx.config.repository
     print(f"Using repository from command line: {ctx.repository}")
   else:
     ctx.repository = set_mirror()
@@ -49,61 +49,61 @@ def step_01_settings(ctx: InstallerContext) -> None:
 
 def step_02_disk_setup(ctx: InstallerContext) -> None:
   info("- wiping disk {}".format(ctx.disk))
-  cmd(f"wipefs -af {ctx.disk}", ctx.args.dry)
-  cmd(f"sgdisk -Zo {ctx.disk}", ctx.args.dry)
+  cmd(f"wipefs -af {ctx.disk}", ctx.dry)
+  cmd(f"sgdisk -Zo {ctx.disk}", ctx.dry)
 
   info("- creating partitions")
   esp = "mkpart ESP fat32 1MiB 513MiB"
   encrypted = "mkpart ENCRYPTED 513MiB 100%"
-  cmd(f"parted -s {ctx.disk} mklabel gpt {esp} {encrypted} set 1 esp on", ctx.args.dry)
+  cmd(f"parted -s {ctx.disk} mklabel gpt {esp} {encrypted} set 1 esp on", ctx.dry)
 
   info("- updating kernel partition table")
-  cmd(f"partprobe {ctx.disk}", ctx.args.dry)
+  cmd(f"partprobe {ctx.disk}", ctx.dry)
 
   info("- formatting EFI partition")
-  cmd(f"mkfs.vfat -F32 -n ESP {ctx.esp}", ctx.args.dry)
+  cmd(f"mkfs.vfat -F32 -n ESP {ctx.esp}", ctx.dry)
 
   info("- setting up disk encryption")
   cryptsetup = f"echo -n '{ctx.luks_pass}' | cryptsetup"
-  cmd(f"{cryptsetup} luksFormat --type luks1 --pbkdf-force-iterations 1000 {ctx.cryptroot} -d -", ctx.args.dry)
-  cmd(f"{cryptsetup} luksOpen {ctx.cryptroot} {ctx.host} -d -", ctx.args.dry)
+  cmd(f"{cryptsetup} luksFormat --type luks1 --pbkdf-force-iterations 1000 {ctx.cryptroot} -d -", ctx.dry)
+  cmd(f"{cryptsetup} luksOpen {ctx.cryptroot} {ctx.host} -d -", ctx.dry)
 
   info("- creating BTRFS filesystem")
-  cmd(f"mkfs.btrfs -L {ctx.host} {ctx.root}", ctx.args.dry)
-  cmd(f"mount -o compress=zstd,noatime {ctx.root} /mnt", ctx.args.dry)
+  cmd(f"mkfs.btrfs -L {ctx.host} {ctx.root}", ctx.dry)
+  cmd(f"mount -o compress=zstd,noatime {ctx.root} /mnt", ctx.dry)
 
   info("- creating subvolumes")
   subvols = ["", "home", "snapshots", "var_cache", "var_log"]
   for sub in subvols:
     name = f"/mnt/@{sub}" if sub else "/mnt/@"
-    cmd(f"btrfs subvolume create {name}", ctx.args.dry)
-  cmd("umount /mnt", ctx.args.dry)
+    cmd(f"btrfs subvolume create {name}", ctx.dry)
+  cmd("umount /mnt", ctx.dry)
 
   info("- mounting filesystem")
   mount = "mount -o X-mount.mkdir,compress=zstd,noatime,subvol=@"
-  cmd(f"{mount} {ctx.root} /mnt", ctx.args.dry)
-  cmd(f"{mount}snapshots {ctx.root} /mnt/.snapshots", ctx.args.dry)
-  cmd(f"{mount}var_cache {ctx.root} /mnt/var/cache", ctx.args.dry)
-  cmd(f"{mount}var_log {ctx.root} /mnt/var/log", ctx.args.dry)
-  cmd(f"{mount}home {ctx.root} /mnt/home", ctx.args.dry)
+  cmd(f"{mount} {ctx.root} /mnt", ctx.dry)
+  cmd(f"{mount}snapshots {ctx.root} /mnt/.snapshots", ctx.dry)
+  cmd(f"{mount}var_cache {ctx.root} /mnt/var/cache", ctx.dry)
+  cmd(f"{mount}var_log {ctx.root} /mnt/var/log", ctx.dry)
+  cmd(f"{mount}home {ctx.root} /mnt/home", ctx.dry)
 
-  cmd("mkdir -p /mnt/boot/efi", ctx.args.dry)
-  cmd(f"mount {ctx.esp} /mnt/boot/efi", ctx.args.dry)
+  cmd("mkdir -p /mnt/boot/efi", ctx.dry)
+  cmd(f"mount {ctx.esp} /mnt/boot/efi", ctx.dry)
 
 
 def step_03_system_bootstrap(ctx: InstallerContext) -> None:
   info("- configuring package manager")
-  cmd("mkdir -p /mnt/var/db/xbps/keys", ctx.args.dry)
-  cmd("cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys", ctx.args.dry)
+  cmd("mkdir -p /mnt/var/db/xbps/keys", ctx.dry)
+  cmd("cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys", ctx.dry)
 
   info("- installing base system")
   path = os.path.join(os.path.dirname(__file__), "../config/void/base.json")
   try:
     with open(path) as f:
-      pkgs_list = json.load(f)
+      pkgs_list: list[str] = json.load(f)
       pkgs = " ".join(pkgs_list)
       repository = ctx.repository or DEFAULTS["repository"]
-      cmd(f"xbps-install -Sy -R '{repository}' -r /mnt {pkgs}", ctx.args.dry)
+      cmd(f"xbps-install -Sy -R '{repository}' -r /mnt {pkgs}", ctx.dry)
   except (FileNotFoundError, json.JSONDecodeError) as e:
     error(f"Error loading base packages: {e}")
     sys.exit(1)
@@ -111,7 +111,7 @@ def step_03_system_bootstrap(ctx: InstallerContext) -> None:
 
 def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None:
   info("- configuring system files")
-  if ctx.args.dry:
+  if ctx.dry:
     efi_uuid = "DRY-RUN-EFI-UUID"
     root_uuid = "DRY-RUN-ROOT-UUID"
   else:
@@ -135,7 +135,7 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
       f"UUID={efi_uuid} /boot/efi vfat defaults,noatime 0 2",
       "tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0",
     ],
-    ctx.args.dry,
+    ctx.dry,
   )
   write(
     "/mnt/etc/sudoers",
@@ -146,24 +146,24 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
       "%wheel ALL=(ALL:ALL) ALL",
       "@includedir /etc/sudoers.d",
     ],
-    ctx.args.dry,
+    ctx.dry,
   )
-  write("/mnt/etc/hostname", [f"{ctx.host}"], ctx.args.dry)
-  write("/mnt/etc/hosts", [f"127.0.0.1 localhost {ctx.host}", "::1 localhost"], ctx.args.dry)
+  write("/mnt/etc/hostname", [f"{ctx.host}"], ctx.dry)
+  write("/mnt/etc/hosts", [f"127.0.0.1 localhost {ctx.host}", "::1 localhost"], ctx.dry)
 
   # Use NTP servers from config
-  write("/mnt/etc/ntpd.conf", [f"server {server}" for server in DEFAULTS["ntp"]], ctx.args.dry)
+  write("/mnt/etc/ntpd.conf", [f"server {str(server)}" for server in DEFAULTS["ntp"]], ctx.dry)
   write(
-    "/mnt/etc/locale.conf", [f"export {var}={ctx.args.locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]], ctx.args.dry
+    "/mnt/etc/locale.conf", [f"export {var}={ctx.config.locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]], ctx.dry
   )
   write(
     "/mnt/etc/rc.conf",
-    [f'TIMEZONE="{ctx.args.timezone}"', 'HARDWARECLOCK="UTC"', f'KEYMAP="{ctx.args.keymap}"'],
-    ctx.args.dry,
+    [f'TIMEZONE="{ctx.config.timezone}"', 'HARDWARECLOCK="UTC"', f'KEYMAP="{ctx.config.keymap}"'],
+    ctx.dry,
   )
-  if ctx.args.libc == "glibc":
-    write("/mnt/etc/default/libc-locales", [f"{ctx.args.locale}"], ctx.args.dry)
-    cmd("xbps-reconfigure -f glibc-locales -r /mnt", ctx.args.dry)
+  if ctx.config.libc == "glibc":
+    write("/mnt/etc/default/libc-locales", [f"{ctx.config.locale}"], ctx.dry)
+    cmd("xbps-reconfigure -f glibc-locales -r /mnt", ctx.dry)
 
   info("- installing packages and configuring services")
   repository = ctx.repository or DEFAULTS["repository"]
@@ -172,23 +172,23 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
     username=ctx.user_name or "",
     distro_name="Void",
     repository=repository,
-    dry_run=ctx.args.dry,
+    dry_run=ctx.dry,
   )
-  cmd("cp /etc/resolv.conf /mnt/etc", ctx.args.dry)
-  cmd("mount --types sysfs none /mnt/sys", ctx.args.dry)
-  cmd("mount --types proc none /mnt/proc", ctx.args.dry)
-  cmd("mount --rbind /run /mnt/run", ctx.args.dry)
-  cmd("mount --rbind /dev /mnt/dev", ctx.args.dry)
-  cmd("mount --types efivarfs none /sys/firmware/efi/efivars", ctx.args.dry)
-  cmd("chroot /mnt /bin/bash -x /root/chroot.sh", ctx.args.dry)
-  cmd(f"yes '{ctx.user_pass}' | chroot /mnt passwd root", ctx.args.dry)
-  cmd(f"yes '{ctx.user_pass}' | chroot /mnt passwd {ctx.user_name}", ctx.args.dry)
+  cmd("cp /etc/resolv.conf /mnt/etc", ctx.dry)
+  cmd("mount --types sysfs none /mnt/sys", ctx.dry)
+  cmd("mount --types proc none /mnt/proc", ctx.dry)
+  cmd("mount --rbind /run /mnt/run", ctx.dry)
+  cmd("mount --rbind /dev /mnt/dev", ctx.dry)
+  cmd("mount --types efivarfs none /sys/firmware/efi/efivars", ctx.dry)
+  cmd("chroot /mnt /bin/bash -x /root/chroot.sh", ctx.dry)
+  cmd(f"yes '{ctx.user_pass}' | chroot /mnt passwd root", ctx.dry)
+  cmd(f"yes '{ctx.user_pass}' | chroot /mnt passwd {ctx.user_name}", ctx.dry)
 
 
 def step_05_cleanup(ctx: InstallerContext) -> None:
   info("- finalizing installation")
-  cmd("rm -rf /mnt/root/chroot.sh", ctx.args.dry)
-  cmd("umount --recursive /mnt", ctx.args.dry)
+  cmd("rm -rf /mnt/root/chroot.sh", ctx.dry)
+  cmd("umount --recursive /mnt", ctx.dry)
   print()
   info("Installation completed. You can now reboot your system.")
 

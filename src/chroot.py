@@ -31,7 +31,7 @@ def section_install_packages(repository: str) -> str:
   pkgs_file = os.path.join(os.path.dirname(__file__), "../config/void/pkgs.json")
   try:
     with open(pkgs_file) as f:
-      pkgs_list = json.load(f)
+      pkgs_list: list[str] = json.load(f)
       pkgs = " ".join(pkgs_list)
   except (FileNotFoundError, json.JSONDecodeError) as e:
     error(f"Error loading packages from pkgs.json: {e}")

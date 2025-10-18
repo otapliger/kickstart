@@ -1,4 +1,30 @@
+from __future__ import annotations
 from argparse import Namespace
+from dataclasses import dataclass
+
+
+@dataclass
+class Config:
+  """Typed configuration object with all command line arguments."""
+
+  dry: bool
+  libc: str
+  repository: str
+  timezone: str
+  keymap: str
+  locale: str
+
+  @classmethod
+  def from_namespace(cls, args: Namespace) -> Config:
+    """Create a typed Config from an argparse Namespace."""
+    return cls(
+      dry=bool(getattr(args, "dry", False)),
+      libc=str(getattr(args, "libc", "glibc")),
+      repository=str(getattr(args, "repository", "")),
+      timezone=str(getattr(args, "timezone", "UTC")),
+      keymap=str(getattr(args, "keymap", "us")),
+      locale=str(getattr(args, "locale", "C")),
+    )
 
 
 class InstallerContext:
@@ -10,9 +36,9 @@ class InstallerContext:
   mirror selection, disk configuration, and user credentials.
   """
 
-  def __init__(self, args: Namespace) -> None:
-    # Command line arguments
-    self.args: Namespace = args
+  def __init__(self, config: Config) -> None:
+    # Typed configuration
+    self.config: Config = config
 
     # User-provided configuration (collected during step 1)
     self.host: str | None = None
@@ -26,3 +52,8 @@ class InstallerContext:
     self.cryptroot: str | None = None
     self.esp: str | None = None
     self.root: str | None = None
+
+  @property
+  def dry(self) -> bool:
+    """Access dry run flag from config."""
+    return self.config.dry

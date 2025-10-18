@@ -4,12 +4,21 @@ import getpass
 import sys
 import re
 import json
-from typing import Any
+from typing import Any, TypedDict
 from src.ansi_codes import green, red, reset, gray
 
 
 def info(message: str) -> None:
   print(f"{green}{message}{reset}")
+
+
+class DefaultsConfig(TypedDict):
+  repository: str
+  timezone: str
+  locale: str
+  keymap: str
+  libc: str
+  ntp: list[str]
 
 
 def error(message: str) -> None:
@@ -22,7 +31,7 @@ def cmd(command: str, dry_run: bool = False) -> None:
     info(f"{gray}[DRY RUN] {command}")
     return
   try:
-    subprocess.run(command, check=True, shell=True)
+    _ = subprocess.run(command, check=True, shell=True)
   except subprocess.CalledProcessError as e:
     error(f"Command '{command}' failed with error: {e}")
     sys.exit(1)
@@ -106,7 +115,7 @@ def set_luks() -> str:
     return luks_pass
 
 
-def load_defaults() -> dict[str, Any]:
+def load_defaults() -> DefaultsConfig:
   """Load default values from defaults.json file."""
   defaults_file = os.path.join(os.path.dirname(__file__), "../config/void/defaults.json")
   required_keys = {"repository", "timezone", "locale", "keymap", "libc", "ntp"}
@@ -120,7 +129,14 @@ def load_defaults() -> dict[str, Any]:
         for key in sorted(missing_keys):
           print(f"  • {key}")
         sys.exit(1)
-      return data
+      return DefaultsConfig(
+        repository=str(data["repository"]),
+        timezone=str(data["timezone"]),
+        locale=str(data["locale"]),
+        keymap=str(data["keymap"]),
+        libc=str(data["libc"]),
+        ntp=[str(server) for server in data["ntp"]],
+      )
   except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
     error(f"Error loading defaults.json: {e}")
     sys.exit(1)
@@ -133,7 +149,7 @@ def load_mirrors() -> list[tuple[str, str, str]]:
   try:
     with open(mirrors_file, "r") as f:
       data = json.load(f)
-      mirrors = [(mirror["url"], mirror["region"], mirror["location"]) for mirror in data]
+      mirrors = [(str(mirror["url"]), str(mirror["region"]), str(mirror["location"])) for mirror in data]
   except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
     error(f"Error loading mirrors.json: {e}")
     sys.exit(1)
@@ -147,7 +163,7 @@ def set_mirror() -> str:
 
   if not mirrors:
     error("No mirrors available. Using default.")
-    return default_repository
+    return str(default_repository)
   print("Available mirrors:")
   for i, (url, region, location) in enumerate(mirrors, start=1):
     if url == default_repository:
