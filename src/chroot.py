@@ -39,7 +39,7 @@ def section_third_party_packages():
   neovim = dedent("""\
     TMP_NVIM=$(mktemp)
     curl -sSLo "${TMP_NVIM}" https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz
-    tar -C /opt -xzf "${TMP_NVIM}" && ln -sf /opt/nvim-linux-x86_64/bin/nvim /usr/bin/nvim && rm -rf "${TMP_NVIM}"
+    tar -C /opt -xzf "${TMP_NVIM}" && mv /opt/nvim-linux-x86_64 /opt/nvim-nightly && ln -sf /opt/nvim-nightly/bin/nvim /usr/bin/nvim && rm -rf "${TMP_NVIM}"
   """)
   opt += neovim
   return opt
