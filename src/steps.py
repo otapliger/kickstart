@@ -35,53 +35,39 @@ def step_01_settings(ctx: InstallerContext) -> None:
   ctx.root = f"/dev/mapper/{ctx.host}"
 
 
-def step_02_wipe_disk(ctx: InstallerContext) -> None:
-  info("- wiping {}".format(ctx.disk))
+def step_02_disk_setup(ctx: InstallerContext) -> None:
+  info("- wiping disk {}".format(ctx.disk))
   cmd(f"wipefs -af {ctx.disk}", ctx.args.dry)
   cmd(f"sgdisk -Zo {ctx.disk}", ctx.args.dry)
 
-
-def step_03_partition_disk(ctx: InstallerContext) -> None:
-  info("- creating new partitions on {}".format(ctx.disk))
+  info("- creating partitions")
   esp = "mkpart ESP fat32 1MiB 513MiB"
   encrypted = "mkpart ENCRYPTED 513MiB 100%"
   cmd(f"parted -s {ctx.disk} mklabel gpt {esp} {encrypted} set 1 esp on", ctx.args.dry)
 
-
-def step_04_kernel_notify(ctx: InstallerContext) -> None:
-  info("- informing the Kernel about the disk changes")
+  info("- updating kernel partition table")
   cmd(f"partprobe {ctx.disk}", ctx.args.dry)
 
-
-def step_05_format_esp(ctx: InstallerContext) -> None:
-  info("- formatting the EFI Partition as FAT32")
+  info("- formatting EFI partition")
   cmd(f"mkfs.vfat -F32 -n ESP {ctx.esp}", ctx.args.dry)
 
-
-def step_06_setup_luks(ctx: InstallerContext) -> None:
-  info("- creating LUKS Container for the root partition")
+  info("- setting up disk encryption")
   cryptsetup = f"echo -n '{ctx.luks_pass}' | cryptsetup"
   cmd(f"{cryptsetup} luksFormat --type luks1 --pbkdf-force-iterations 1000 {ctx.cryptroot} -d -", ctx.args.dry)
   cmd(f"{cryptsetup} luksOpen {ctx.cryptroot} {ctx.host} -d -", ctx.args.dry)
 
-
-def step_07_format_btrfs(ctx: InstallerContext) -> None:
-  info("- formatting the LUKS container as BTRFS")
+  info("- creating BTRFS filesystem")
   cmd(f"mkfs.btrfs -L {ctx.host} {ctx.root}", ctx.args.dry)
   cmd(f"mount -o compress=zstd,noatime {ctx.root} /mnt", ctx.args.dry)
 
-
-def step_08_create_subvols(ctx: InstallerContext) -> None:
-  info("- creating BTRFS subvolumes")
+  info("- creating subvolumes")
   subvols = ["", "home", "snapshots", "var_cache", "var_log"]
   for sub in subvols:
     name = f"/mnt/@{sub}" if sub else "/mnt/@"
     cmd(f"btrfs subvolume create {name}", ctx.args.dry)
   cmd("umount /mnt", ctx.args.dry)
 
-
-def step_09_mount_subvols(ctx: InstallerContext) -> None:
-  info("- mounting the newly created subvolumes")
+  info("- mounting filesystem")
   mount = "mount -o X-mount.mkdir,compress=zstd,noatime,subvol=@"
   cmd(f"{mount} {ctx.root} /mnt", ctx.args.dry)
   cmd(f"{mount}snapshots {ctx.root} /mnt/.snapshots", ctx.args.dry)
@@ -89,36 +75,36 @@ def step_09_mount_subvols(ctx: InstallerContext) -> None:
   cmd(f"{mount}var_log {ctx.root} /mnt/var/log", ctx.args.dry)
   cmd(f"{mount}home {ctx.root} /mnt/home", ctx.args.dry)
 
-
-def step_10_mount_efi(ctx: InstallerContext) -> None:
   cmd("mkdir -p /mnt/boot/efi", ctx.args.dry)
   cmd(f"mount {ctx.esp} /mnt/boot/efi", ctx.args.dry)
 
 
-def step_11_setup_xbps(ctx: InstallerContext) -> None:
+def step_03_system_bootstrap(ctx: InstallerContext) -> None:
+  info("- configuring package manager")
   cmd("mkdir -p /mnt/var/db/xbps/keys", ctx.args.dry)
   cmd("cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys", ctx.args.dry)
 
-
-def step_12_install_base(ctx: InstallerContext) -> None:
-  info("- installing the base system (it may take a few minutes)")
+  info("- installing base system")
   path = os.path.join(os.path.dirname(__file__), "../pkgs/base.void")
   with open(path) as f:
     pkgs = " ".join(line.strip() for line in f if line.strip())
     cmd(f"xbps-install -Sy -R '{ctx.args.repository}' -r /mnt {pkgs}", ctx.args.dry)
 
 
-def step_13_etc_bootstrap(ctx: InstallerContext) -> None:
+def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None:
+  info("- configuring system files")
   if ctx.args.dry:
     efi_uuid = "DRY-RUN-EFI-UUID"
     root_uuid = "DRY-RUN-ROOT-UUID"
   else:
     blkid = "blkid --match-tag UUID --output value"
-    efi = "/dev/disk/by-partlabel/ESP"
-    efi_result = subprocess.run(f"{blkid} {efi}", check=True, shell=True, capture_output=True, text=True)
+    efi_result = subprocess.run(
+      f"{blkid} /dev/disk/by-partlabel/ESP", check=True, shell=True, capture_output=True, text=True
+    )
     efi_uuid = efi_result.stdout.strip()
-    root = f"/dev/mapper/{ctx.host}"
-    root_result = subprocess.run(f"{blkid} {root}", check=True, shell=True, capture_output=True, text=True)
+    root_result = subprocess.run(
+      f"{blkid} /dev/mapper/{ctx.host}", check=True, shell=True, capture_output=True, text=True
+    )
     root_uuid = root_result.stdout.strip()
   write(
     "/mnt/etc/fstab",
@@ -159,9 +145,7 @@ def step_13_etc_bootstrap(ctx: InstallerContext) -> None:
     write("/mnt/etc/default/libc-locales", [f"{ctx.args.locale}"], ctx.args.dry)
     cmd("xbps-reconfigure -f glibc-locales -r /mnt", ctx.args.dry)
 
-
-def step_14_chroot_setup(ctx: InstallerContext) -> None:
-  info("- setting up the system (settings, packages and users)")
+  info("- installing packages and configuring services")
   generate_chroot(
     path="/mnt/root/chroot.sh",
     username=ctx.user_name or "",
@@ -180,7 +164,8 @@ def step_14_chroot_setup(ctx: InstallerContext) -> None:
   cmd(f"yes '{ctx.user_pass}' | chroot /mnt passwd {ctx.user_name}", ctx.args.dry)
 
 
-def step_15_cleanup(ctx: InstallerContext) -> None:
+def step_05_cleanup(ctx: InstallerContext) -> None:
+  info("- finalizing installation")
   cmd("rm -rf /mnt/root/chroot.sh", ctx.args.dry)
   cmd("umount --recursive /mnt", ctx.args.dry)
   print()
@@ -189,18 +174,8 @@ def step_15_cleanup(ctx: InstallerContext) -> None:
 
 install: list[Callable[[InstallerContext], None]] = [
   step_01_settings,
-  step_02_wipe_disk,
-  step_03_partition_disk,
-  step_04_kernel_notify,
-  step_05_format_esp,
-  step_06_setup_luks,
-  step_07_format_btrfs,
-  step_08_create_subvols,
-  step_09_mount_subvols,
-  step_10_mount_efi,
-  step_11_setup_xbps,
-  step_12_install_base,
-  step_13_etc_bootstrap,
-  step_14_chroot_setup,
-  step_15_cleanup,
+  step_02_disk_setup,
+  step_03_system_bootstrap,
+  step_04_system_installation_and_configuration,
+  step_05_cleanup,
 ]
