@@ -1,8 +1,8 @@
 import os
 import subprocess
-from typing import Union
+import json
 from src.ansi_codes import gray, reset
-from src.utils import info
+from src.utils import info, error
 from textwrap import dedent
 
 
@@ -28,8 +28,16 @@ def section_grub_install(crypt_uuid: str, distro_name: str) -> str:
 
 
 def section_install_packages(repository: str) -> str:
+  pkgs_file = os.path.join(os.path.dirname(__file__), "../config/void/pkgs.json")
+  try:
+    with open(pkgs_file) as f:
+      pkgs_list = json.load(f)
+      pkgs = " ".join(pkgs_list)
+  except (FileNotFoundError, json.JSONDecodeError) as e:
+    error(f"Error loading packages from pkgs.json: {e}")
+    return ""
   return dedent(f"""\
-    yes | xi && yes | xargs -a config/void/pkgs.void xbps-install -USy --repository "{repository}"
+    yes | xi && yes | xbps-install -USy --repository "{repository}" {pkgs}
   """)
 
 

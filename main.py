@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.12
 
 import argparse
 import os
@@ -6,10 +6,7 @@ import re
 import sys
 import urllib.parse
 from pathlib import Path
-
 from typing import override
-
-
 from src.ansi_codes import green, red, reset, yellow, bold
 from src.ascii_art import void
 from src.steps import install
@@ -155,7 +152,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     "--libc",
     metavar="LIBC",
     type=str,
-    default=DEFAULTS["LIBC"],
+    default=DEFAULTS["libc"],
     help="C library implementation (glibc or musl) [default: %(default)s]",
     dest="libc",
   )
@@ -163,7 +160,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     "--repository",
     metavar="URL",
     type=str,
-    default=DEFAULTS["REPOSITORY"],
+    default=DEFAULTS["repository"],
     help="override interactive mirror selection with specific repository URL [default: %(default)s]",
     dest="repository",
   )
@@ -171,7 +168,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     "--timezone",
     metavar="TIMEZONE",
     type=str,
-    default=DEFAULTS["TIMEZONE"],
+    default=DEFAULTS["timezone"],
     help="system timezone in Region/City format [default: %(default)s]",
     dest="timezone",
   )
@@ -179,7 +176,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     "--keymap",
     metavar="KEYMAP",
     type=str,
-    default=DEFAULTS["KEYMAP"],
+    default=DEFAULTS["keymap"],
     help="keyboard layout for the system [default: %(default)s]",
     dest="keymap",
   )
@@ -187,7 +184,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     "--locale",
     metavar="LOCALE",
     type=str,
-    default=DEFAULTS["LOCALE"],
+    default=DEFAULTS["locale"],
     help="system locale (e.g., en_US, en_US.UTF-8, C, POSIX) [default: %(default)s]",
     dest="locale",
   )

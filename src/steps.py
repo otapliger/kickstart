@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os
+import json
 from typing import Callable
 from src.ansi_codes import bold, yellow, reset
 from src.chroot import generate_chroot
@@ -19,6 +20,7 @@ from src.utils import (
 )
 from src.context import InstallerContext
 
+
 DEFAULTS = load_defaults()
 
 
@@ -29,8 +31,7 @@ def step_01_settings(ctx: InstallerContext) -> None:
   ctx.user_name = set_user()
   ctx.user_pass = set_pass(ctx.user_name)
 
-  # Use command line repository if explicitly provided, otherwise prompt for mirror selection
-  if ctx.args.repository != DEFAULTS["REPOSITORY"]:
+  if ctx.args.repository != DEFAULTS["repository"]:
     ctx.repository = ctx.args.repository
     print(f"Using repository from command line: {ctx.repository}")
   else:
@@ -96,11 +97,16 @@ def step_03_system_bootstrap(ctx: InstallerContext) -> None:
   cmd("cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys", ctx.args.dry)
 
   info("- installing base system")
-  path = os.path.join(os.path.dirname(__file__), "../config/void/base.void")
-  with open(path) as f:
-    pkgs = " ".join(line.strip() for line in f if line.strip())
-    repository = ctx.repository or DEFAULTS["REPOSITORY"]
-    cmd(f"xbps-install -Sy -R '{repository}' -r /mnt {pkgs}", ctx.args.dry)
+  path = os.path.join(os.path.dirname(__file__), "../config/void/base.json")
+  try:
+    with open(path) as f:
+      pkgs_list = json.load(f)
+      pkgs = " ".join(pkgs_list)
+      repository = ctx.repository or DEFAULTS["repository"]
+      cmd(f"xbps-install -Sy -R '{repository}' -r /mnt {pkgs}", ctx.args.dry)
+  except (FileNotFoundError, json.JSONDecodeError) as e:
+    error(f"Error loading base packages: {e}")
+    sys.exit(1)
 
 
 def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None:
@@ -146,8 +152,7 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
   write("/mnt/etc/hosts", [f"127.0.0.1 localhost {ctx.host}", "::1 localhost"], ctx.args.dry)
 
   # Use NTP servers from config
-  ntp_servers = DEFAULTS["NTP_SERVERS"].split()
-  write("/mnt/etc/ntpd.conf", [f"server {server}" for server in ntp_servers], ctx.args.dry)
+  write("/mnt/etc/ntpd.conf", [f"server {server}" for server in DEFAULTS["ntp"]], ctx.args.dry)
   write(
     "/mnt/etc/locale.conf", [f"export {var}={ctx.args.locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]], ctx.args.dry
   )
@@ -161,7 +166,7 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
     cmd("xbps-reconfigure -f glibc-locales -r /mnt", ctx.args.dry)
 
   info("- installing packages and configuring services")
-  repository = ctx.repository or DEFAULTS["REPOSITORY"]
+  repository = ctx.repository or DEFAULTS["repository"]
   generate_chroot(
     path="/mnt/root/chroot.sh",
     username=ctx.user_name or "",

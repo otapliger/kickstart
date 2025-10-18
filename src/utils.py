@@ -3,7 +3,8 @@ import os
 import getpass
 import sys
 import re
-
+import json
+from typing import Any
 from src.ansi_codes import green, red, reset, gray
 
 
@@ -105,76 +106,60 @@ def set_luks() -> str:
     return luks_pass
 
 
-def load_defaults() -> dict[str, str]:
-  """Load default values from defaults.void file."""
-  defaults = {}
-  defaults_file = os.path.join(os.path.dirname(__file__), "../config/void/defaults.void")
-  required_keys = {"REPOSITORY", "TIMEZONE", "LOCALE", "KEYMAP", "LIBC", "NTP_SERVERS"}
+def load_defaults() -> dict[str, Any]:
+  """Load default values from defaults.json file."""
+  defaults_file = os.path.join(os.path.dirname(__file__), "../config/void/defaults.json")
+  required_keys = {"repository", "timezone", "locale", "keymap", "libc", "ntp"}
 
   try:
     with open(defaults_file, "r") as f:
-      for line in f:
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-          key, value = line.split("=", 1)
-          defaults[key.strip()] = value.strip()
-  except FileNotFoundError:
-    error(f"Defaults file not found: {defaults_file}")
+      data = json.load(f)
+      missing_keys = required_keys - data.keys()
+      if missing_keys:
+        error("Missing required configuration in defaults.json:")
+        for key in sorted(missing_keys):
+          print(f"  • {key}")
+        sys.exit(1)
+      return data
+  except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+    error(f"Error loading defaults.json: {e}")
     sys.exit(1)
-
-  missing_keys = required_keys - defaults.keys()
-  if missing_keys:
-    error("Missing required configuration in defaults.void:")
-    for key in sorted(missing_keys):
-      print(f"  • {key}")
-    sys.exit(1)
-  return defaults
 
 
 def load_mirrors() -> list[tuple[str, str, str]]:
-  """Load mirrors from mirrors.void file and return as list of (url, region, location) tuples."""
-  mirrors = []
-  mirrors_file = os.path.join(os.path.dirname(__file__), "../config/void/mirrors.void")
+  """Load mirrors from mirrors.json file and return as list of (url, region, location) tuples."""
+  mirrors_file = os.path.join(os.path.dirname(__file__), "../config/void/mirrors.json")
 
   try:
     with open(mirrors_file, "r") as f:
-      for line in f:
-        line = line.strip()
-        if line and not line.startswith("#"):
-          parts = [part.strip() for part in line.split("|")]
-          if len(parts) == 3:
-            url, region, location = parts
-            mirrors.append((url, region, location))
-  except FileNotFoundError:
-    error(f"Mirrors file not found: {mirrors_file}")
+      data = json.load(f)
+      mirrors = [(mirror["url"], mirror["region"], mirror["location"]) for mirror in data]
+  except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+    error(f"Error loading mirrors.json: {e}")
     sys.exit(1)
   return mirrors
 
 
 def set_mirror() -> str:
   """Allow user to select a Void Linux mirror."""
+  default_repository = load_defaults()["repository"]
   mirrors = load_mirrors()
 
   if not mirrors:
     error("No mirrors available. Using default.")
-    return load_defaults()["REPOSITORY"]
-
+    return default_repository
   print("Available mirrors:")
   for i, (url, region, location) in enumerate(mirrors, start=1):
-    if url == load_defaults()["REPOSITORY"]:
+    if url == default_repository:
       print(f"  {i}. {region} - {location} (default)")
     else:
       print(f"  {i}. {region} - {location}")
-
   while True:
     try:
       print()
       choice = input("Select a mirror (press Enter for default): ").strip()
-
       if not choice:
-        # Return default from config
-        return load_defaults()["REPOSITORY"]
-
+        return default_repository
       mirror_choice = int(choice)
       if 1 <= mirror_choice <= len(mirrors):
         selected_url = mirrors[mirror_choice - 1][0]
