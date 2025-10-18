@@ -6,13 +6,13 @@ from src.utils import info, error
 from textwrap import dedent
 
 
-def section_header() -> str:
+def _section_header() -> str:
   return dedent("""\
     #!/usr/bin/env -S bash -e
   """)
 
 
-def section_grub_install(crypt_uuid: str, distro_name: str) -> str:
+def _section_grub_install(crypt_uuid: str, distro_name: str) -> str:
   return dedent(f"""\
     tee /etc/default/grub &> /dev/null << EOF
     GRUB_CMDLINE_LINUX_DEFAULT="quiet rd.auto=1 rd.luks.name={crypt_uuid}=ENCRYPTED rd.luks.allow-discards={crypt_uuid}"
@@ -27,7 +27,7 @@ def section_grub_install(crypt_uuid: str, distro_name: str) -> str:
   """)
 
 
-def section_install_packages(repository: str) -> str:
+def _section_install_packages(repository: str) -> str:
   pkgs_file = os.path.join(os.path.dirname(__file__), "../config/void/pkgs.json")
   try:
     with open(pkgs_file) as f:
@@ -41,7 +41,7 @@ def section_install_packages(repository: str) -> str:
   """)
 
 
-def section_third_party_packages() -> str:
+def _section_third_party_packages() -> str:
   opt = dedent("""\
     mkdir -p /opt
   """)
@@ -54,7 +54,7 @@ def section_third_party_packages() -> str:
   return opt
 
 
-def section_post_install(username: str) -> str:
+def _section_post_install(username: str) -> str:
   config = dedent("""\
     xbps-reconfigure --force --all
   """)
@@ -97,16 +97,16 @@ def generate_chroot(
     )
     crypt_uuid = result.stdout.strip()
   parts: list[str] = [
-    section_header(),
-    section_grub_install(crypt_uuid, distro_name),
-    section_install_packages(repository),
-    section_third_party_packages(),
-    section_post_install(username),
+    _section_header(),
+    _section_grub_install(crypt_uuid, distro_name),
+    _section_install_packages(repository),
+    _section_third_party_packages(),
+    _section_post_install(username),
   ]
   if dry_run:
     info(f"{gray}[DRY RUN] generated chroot script:{reset}")
     print("\n".join(parts))
   else:
     with open(path, "w") as f:
-      f.write("\n".join(parts))
-    os.chmod(path, 0o755)
+      _ = f.write("\n".join(parts))
+    _ = os.chmod(path, 0o755)

@@ -35,7 +35,7 @@ class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
     return parts[-1]
 
 
-def validate_url(url: str) -> bool:
+def _validate_url(url: str) -> bool:
   """Validate that a URL is properly formatted."""
   if not url:
     return False
@@ -44,7 +44,7 @@ def validate_url(url: str) -> bool:
   return bool(result.scheme and result.netloc)
 
 
-def validate_timezone(timezone: str) -> bool:
+def _validate_timezone(timezone: str) -> bool:
   """Validate timezone against common timezone patterns."""
   if "/" not in timezone:
     return False
@@ -57,7 +57,7 @@ def validate_timezone(timezone: str) -> bool:
   return True
 
 
-def validate_locale(locale: str) -> bool:
+def _validate_locale(locale: str) -> bool:
   """Validate locale format - supports various glibc locale formats."""
   if not locale:
     return False
@@ -72,13 +72,13 @@ def validate_locale(locale: str) -> bool:
   return bool(re.match(pattern, locale))
 
 
-def validate_libc(libc: str) -> bool:
+def _validate_libc(libc: str) -> bool:
   """Validate C library implementation."""
   valid_libcs = {"glibc", "musl"}
   return libc.lower() in valid_libcs
 
 
-def check_system_requirements() -> None:
+def _check_system_requirements() -> None:
   """Check if the system meets installation requirements."""
   if os.geteuid() != 0:
     error("Root privileges are required. Please re-run the script as root.")
@@ -95,20 +95,20 @@ def check_system_requirements() -> None:
     sys.exit(3)
 
 
-def validate_arguments(config: Config) -> None:
+def _validate_arguments(config: Config) -> None:
   """Validate all command line arguments."""
   errors: list[str] = []
 
-  if not validate_url(config.repository):
+  if not _validate_url(config.repository):
     errors.append(f"Invalid repository URL: {config.repository}")
 
-  if not validate_timezone(config.timezone):
+  if not _validate_timezone(config.timezone):
     errors.append(f"Invalid timezone: {config.timezone} (expected format: Region/City)")
 
-  if not validate_locale(config.locale):
+  if not _validate_locale(config.locale):
     errors.append(f"Invalid locale: {config.locale} (expected format: language[_COUNTRY][.encoding][@modifier])")
 
-  if not validate_libc(config.libc):
+  if not _validate_libc(config.libc):
     errors.append(f"Invalid libc: {config.libc} (must be 'glibc' or 'musl')")
 
   if errors:
@@ -119,7 +119,7 @@ def validate_arguments(config: Config) -> None:
     sys.exit(1)
 
 
-def create_argument_parser() -> argparse.ArgumentParser:
+def _create_argument_parser() -> argparse.ArgumentParser:
   """Create and configure the argument parser."""
   parser = argparse.ArgumentParser(
     formatter_class=IndentedHelpFormatter,
@@ -194,7 +194,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
   return parser
 
 
-def run_installation(ctx: InstallerContext) -> None:
+def _run_installation(ctx: InstallerContext) -> None:
   """Run the installation process with proper error handling."""
   total_steps = len(install)
 
@@ -232,7 +232,7 @@ def run_installation(ctx: InstallerContext) -> None:
 
 def main() -> None:
   """Main entry point for the installer."""
-  parser = create_argument_parser()
+  parser = _create_argument_parser()
   args = parser.parse_args()
   config = Config.from_namespace(args)
 
@@ -244,17 +244,17 @@ def main() -> None:
 
   print()
 
-  validate_arguments(config)
+  _validate_arguments(config)
 
   if not config.dry:
-    check_system_requirements()
+    _check_system_requirements()
   else:
     info("Skipping root and system checks in dry run mode")
 
   ctx = InstallerContext(config)
 
   try:
-    run_installation(ctx)
+    _run_installation(ctx)
 
     if config.dry:
       print()

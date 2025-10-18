@@ -5,3 +5,7 @@ description = "A user-friendly, automated installer for Void Linux, designed to 
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
+
+[tool.basedpyright]
+# Keep strict type checking - accept JSON-related warnings as they're unavoidable
+strict = true

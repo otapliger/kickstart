@@ -4,7 +4,7 @@ import getpass
 import sys
 import re
 import json
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 from src.ansi_codes import green, red, reset, gray
 
 
@@ -19,6 +19,12 @@ class DefaultsConfig(TypedDict):
   keymap: str
   libc: str
   ntp: list[str]
+
+
+class MirrorData(TypedDict):
+  url: str
+  region: str
+  location: str
 
 
 def error(message: str) -> None:
@@ -115,31 +121,59 @@ def set_luks() -> str:
     return luks_pass
 
 
+def _validate_defaults_json(data: Any) -> dict[str, Any]:
+  """Validate and return defaults JSON data with proper typing."""
+  if not isinstance(data, dict):
+    raise ValueError("Defaults JSON must be an object")
+
+  required_keys = {"repository", "timezone", "locale", "keymap", "libc", "ntp"}
+  missing_keys = required_keys - data.keys()
+  if missing_keys:
+    raise KeyError(f"Missing required keys: {missing_keys}")
+
+  if not isinstance(data["ntp"], list):
+    raise ValueError("ntp field must be a list")
+
+  return cast(dict[str, Any], data)
+
+
 def load_defaults() -> DefaultsConfig:
   """Load default values from defaults.json file."""
   defaults_file = os.path.join(os.path.dirname(__file__), "../config/void/defaults.json")
-  required_keys = {"repository", "timezone", "locale", "keymap", "libc", "ntp"}
 
   try:
     with open(defaults_file, "r") as f:
-      data = json.load(f)
-      missing_keys = required_keys - data.keys()
-      if missing_keys:
-        error("Missing required configuration in defaults.json:")
-        for key in sorted(missing_keys):
-          print(f"  • {key}")
-        sys.exit(1)
+      raw_json = cast(dict[str, Any], json.load(f))
+      raw_data = _validate_defaults_json(raw_json)
+
       return DefaultsConfig(
-        repository=str(data["repository"]),
-        timezone=str(data["timezone"]),
-        locale=str(data["locale"]),
-        keymap=str(data["keymap"]),
-        libc=str(data["libc"]),
-        ntp=[str(server) for server in data["ntp"]],
+        repository=str(raw_data["repository"]),
+        timezone=str(raw_data["timezone"]),
+        locale=str(raw_data["locale"]),
+        keymap=str(raw_data["keymap"]),
+        libc=str(raw_data["libc"]),
+        ntp=[str(server) for server in cast(list[Any], raw_data["ntp"])],
       )
-  except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+  except (FileNotFoundError, json.JSONDecodeError) as e:
     error(f"Error loading defaults.json: {e}")
     sys.exit(1)
+  except (KeyError, ValueError) as e:
+    error(f"Invalid defaults.json format: {e}")
+    sys.exit(1)
+
+
+def _validate_mirrors_json(data: Any) -> list[MirrorData]:
+  """Validate and return mirrors JSON data with proper typing."""
+  if not isinstance(data, list):
+    raise ValueError("Mirrors JSON must be an array")
+
+  for item in data:
+    if not isinstance(item, dict):
+      raise ValueError("Each mirror must be an object")
+    if not all(key in item for key in ["url", "region", "location"]):
+      raise ValueError("Each mirror must have url, region, and location fields")
+
+  return cast(list[MirrorData], data)
 
 
 def load_mirrors() -> list[tuple[str, str, str]]:
@@ -148,10 +182,14 @@ def load_mirrors() -> list[tuple[str, str, str]]:
 
   try:
     with open(mirrors_file, "r") as f:
-      data = json.load(f)
-      mirrors = [(str(mirror["url"]), str(mirror["region"]), str(mirror["location"])) for mirror in data]
-  except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+      raw_json = cast(list[Any], json.load(f))
+      data = _validate_mirrors_json(raw_json)
+      mirrors = [(mirror["url"], mirror["region"], mirror["location"]) for mirror in data]
+  except (FileNotFoundError, json.JSONDecodeError) as e:
     error(f"Error loading mirrors.json: {e}")
+    sys.exit(1)
+  except ValueError as e:
+    error(f"Invalid mirrors.json format: {e}")
     sys.exit(1)
   return mirrors
 
