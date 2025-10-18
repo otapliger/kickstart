@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+
 from src.ansi_codes import green, red, reset
 from src.ascii_art import void
 from src.steps import install
@@ -9,7 +10,7 @@ from textwrap import dedent
 
 
 class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
-  def _format_action_invocation(self, action):
+  def _format_action_invocation(self, action: argparse.Action) -> str:
     options = action.option_strings
     if not options:
       return super()._format_action_invocation(action)
@@ -23,7 +24,7 @@ class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
     return parts[-1]
 
 
-def main():
+def main() -> None:
   parser = argparse.ArgumentParser(
     formatter_class=IndentedHelpFormatter,
     description=dedent("""

@@ -1,6 +1,6 @@
 from src.ansi_codes import bold, green, white, reset
 
-void = f"""{bold}{green}
+void: str = f"""{bold}{green}
     _______
  _ \\______ -
 | \\  ___  \\ |

@@ -1,17 +1,18 @@
 import os
 import subprocess
+from typing import Union
 from src.ansi_codes import gray, reset
 from src.utils import info
 from textwrap import dedent
 
 
-def section_header():
+def section_header() -> str:
   return dedent("""\
     #!/usr/bin/env -S bash -e
   """)
 
 
-def section_grub_install(crypt_uuid, distro_name):
+def section_grub_install(crypt_uuid: str, distro_name: str) -> str:
   return dedent(f"""\
     tee /etc/default/grub &> /dev/null << EOF
     GRUB_CMDLINE_LINUX_DEFAULT="quiet rd.auto=1 rd.luks.name={crypt_uuid}=ENCRYPTED rd.luks.allow-discards={crypt_uuid}"
@@ -26,13 +27,13 @@ def section_grub_install(crypt_uuid, distro_name):
   """)
 
 
-def section_install_packages(repository):
+def section_install_packages(repository: str) -> str:
   return dedent(f"""\
     yes | xi && yes | xargs -a pkgs/pkgs.void xbps-install -USy --repository "{repository}"
   """)
 
 
-def section_third_party_packages():
+def section_third_party_packages() -> str:
   opt = dedent("""\
     mkdir -p /opt
   """)
@@ -45,7 +46,7 @@ def section_third_party_packages():
   return opt
 
 
-def section_post_install(username):
+def section_post_install(username: str) -> str:
   config = dedent("""\
     xbps-reconfigure --force --all
   """)
@@ -73,18 +74,21 @@ def section_post_install(username):
 
 
 def generate_chroot(
-  path,
-  username,
-  distro_name,
-  repository,
-  dry_run=False,
-):
+  path: str,
+  username: str,
+  distro_name: str,
+  repository: str,
+  dry_run: bool = False,
+) -> None:
   if dry_run:
     crypt_uuid = "MOCK-CRYPT-UUID"
   else:
     blkid = "blkid --match-tag UUID --output value"
-    crypt_uuid = subprocess.run(f"{blkid} /dev/disk/by-partlabel/ENCRYPTED", check=True, shell=True)
-  parts = [
+    result = subprocess.run(
+      f"{blkid} /dev/disk/by-partlabel/ENCRYPTED", check=True, shell=True, capture_output=True, text=True
+    )
+    crypt_uuid = result.stdout.strip()
+  parts: list[str] = [
     section_header(),
     section_grub_install(crypt_uuid, distro_name),
     section_install_packages(repository),

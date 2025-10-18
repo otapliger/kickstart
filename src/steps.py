@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os
+from typing import Callable
 from src.ansi_codes import bold, yellow, reset
 from src.chroot import generate_chroot
 from src.utils import (
@@ -13,10 +14,11 @@ from src.utils import (
   set_luks,
   set_pass,
   set_user,
+  InstallerContext,
 )
 
 
-def step_01_settings(ctx):
+def step_01_settings(ctx: InstallerContext) -> None:
   ctx.host = set_host()
   ctx.disk = set_disk()
   ctx.luks_pass = set_luks()
@@ -33,43 +35,43 @@ def step_01_settings(ctx):
   ctx.root = f"/dev/mapper/{ctx.host}"
 
 
-def step_02_wipe_disk(ctx):
+def step_02_wipe_disk(ctx: InstallerContext) -> None:
   info("- wiping {}".format(ctx.disk))
   cmd(f"wipefs -af {ctx.disk}", ctx.args.dry)
   cmd(f"sgdisk -Zo {ctx.disk}", ctx.args.dry)
 
 
-def step_03_partition_disk(ctx):
+def step_03_partition_disk(ctx: InstallerContext) -> None:
   info("- creating new partitions on {}".format(ctx.disk))
   esp = "mkpart ESP fat32 1MiB 513MiB"
   encrypted = "mkpart ENCRYPTED 513MiB 100%"
   cmd(f"parted -s {ctx.disk} mklabel gpt {esp} {encrypted} set 1 esp on", ctx.args.dry)
 
 
-def step_04_kernel_notify(ctx):
+def step_04_kernel_notify(ctx: InstallerContext) -> None:
   info("- informing the Kernel about the disk changes")
   cmd(f"partprobe {ctx.disk}", ctx.args.dry)
 
 
-def step_05_format_esp(ctx):
+def step_05_format_esp(ctx: InstallerContext) -> None:
   info("- formatting the EFI Partition as FAT32")
   cmd(f"mkfs.vfat -F32 -n ESP {ctx.esp}", ctx.args.dry)
 
 
-def step_06_setup_luks(ctx):
+def step_06_setup_luks(ctx: InstallerContext) -> None:
   info("- creating LUKS Container for the root partition")
   cryptsetup = f"echo -n '{ctx.luks_pass}' | cryptsetup"
   cmd(f"{cryptsetup} luksFormat --type luks1 --pbkdf-force-iterations 1000 {ctx.cryptroot} -d -", ctx.args.dry)
   cmd(f"{cryptsetup} luksOpen {ctx.cryptroot} {ctx.host} -d -", ctx.args.dry)
 
 
-def step_07_format_btrfs(ctx):
+def step_07_format_btrfs(ctx: InstallerContext) -> None:
   info("- formatting the LUKS container as BTRFS")
   cmd(f"mkfs.btrfs -L {ctx.host} {ctx.root}", ctx.args.dry)
   cmd(f"mount -o compress=zstd,noatime {ctx.root} /mnt", ctx.args.dry)
 
 
-def step_08_create_subvols(ctx):
+def step_08_create_subvols(ctx: InstallerContext) -> None:
   info("- creating BTRFS subvolumes")
   subvols = ["", "home", "snapshots", "var_cache", "var_log"]
   for sub in subvols:
@@ -78,7 +80,7 @@ def step_08_create_subvols(ctx):
   cmd("umount /mnt", ctx.args.dry)
 
 
-def step_09_mount_subvols(ctx):
+def step_09_mount_subvols(ctx: InstallerContext) -> None:
   info("- mounting the newly created subvolumes")
   mount = "mount -o X-mount.mkdir,compress=zstd,noatime,subvol=@"
   cmd(f"{mount} {ctx.root} /mnt", ctx.args.dry)
@@ -88,17 +90,17 @@ def step_09_mount_subvols(ctx):
   cmd(f"{mount}home {ctx.root} /mnt/home", ctx.args.dry)
 
 
-def step_10_mount_efi(ctx):
+def step_10_mount_efi(ctx: InstallerContext) -> None:
   cmd("mkdir -p /mnt/boot/efi", ctx.args.dry)
   cmd(f"mount {ctx.esp} /mnt/boot/efi", ctx.args.dry)
 
 
-def step_11_setup_xbps(ctx):
+def step_11_setup_xbps(ctx: InstallerContext) -> None:
   cmd("mkdir -p /mnt/var/db/xbps/keys", ctx.args.dry)
   cmd("cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys", ctx.args.dry)
 
 
-def step_12_install_base(ctx):
+def step_12_install_base(ctx: InstallerContext) -> None:
   info("- installing the base system (it may take a few minutes)")
   path = os.path.join(os.path.dirname(__file__), "../pkgs/base.void")
   with open(path) as f:
@@ -106,14 +108,18 @@ def step_12_install_base(ctx):
     cmd(f"xbps-install -Sy -R '{ctx.args.repository}' -r /mnt {pkgs}", ctx.args.dry)
 
 
-def step_13_etc_bootstrap(ctx):
+def step_13_etc_bootstrap(ctx: InstallerContext) -> None:
   if ctx.args.dry:
     efi_uuid = "DRY-RUN-EFI-UUID"
     root_uuid = "DRY-RUN-ROOT-UUID"
   else:
     blkid = "blkid --match-tag UUID --output value"
-    efi_uuid = subprocess.run(f"{blkid} /dev/disk/by-partlabel/ESP", check=True, shell=True)
-    root_uuid = subprocess.run(f"{blkid} /dev/mapper/{ctx.host}", check=True, shell=True)
+    efi = "/dev/disk/by-partlabel/ESP"
+    efi_result = subprocess.run(f"{blkid} {efi}", check=True, shell=True, capture_output=True, text=True)
+    efi_uuid = efi_result.stdout.strip()
+    root = f"/dev/mapper/{ctx.host}"
+    root_result = subprocess.run(f"{blkid} {root}", check=True, shell=True, capture_output=True, text=True)
+    root_uuid = root_result.stdout.strip()
   write(
     "/mnt/etc/fstab",
     [
@@ -146,11 +152,11 @@ def step_13_etc_bootstrap(ctx):
     cmd("xbps-reconfigure -f glibc-locales -r /mnt", ctx.args.dry)
 
 
-def step_14_chroot_setup(ctx):
+def step_14_chroot_setup(ctx: InstallerContext) -> None:
   info("- setting up the system (settings, packages and users)")
   generate_chroot(
     path="/mnt/root/chroot.sh",
-    username=ctx.user_name,
+    username=ctx.user_name or "",
     distro_name="Void",
     repository=ctx.args.repository,
     dry_run=ctx.args.dry,
@@ -166,14 +172,14 @@ def step_14_chroot_setup(ctx):
   cmd(f"yes '{ctx.user_pass}' | chroot /mnt passwd {ctx.user_name}", ctx.args.dry)
 
 
-def step_15_cleanup(ctx):
+def step_15_cleanup(ctx: InstallerContext) -> None:
   cmd("rm -rf /mnt/root/chroot.sh", ctx.args.dry)
   cmd("umount --recursive /mnt", ctx.args.dry)
   print()
   info("Installation completed. You can now reboot your system.")
 
 
-install = [
+install: list[Callable[[InstallerContext], None]] = [
   step_01_settings,
   step_02_wipe_disk,
   step_03_partition_disk,
