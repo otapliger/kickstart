@@ -1,13 +1,13 @@
 {
   "repository": "https://repo-fastly.voidlinux.org/current",
-  "timezone": "Europe/Helsinki",
+  "timezone": "Europe/London",
   "locale": "en_GB.UTF-8",
-  "keymap": "us",
+  "keymap": "gb",
   "libc": "glibc",
   "ntp": [
-    "0.fi.pool.ntp.org",
-    "1.fi.pool.ntp.org",
-    "2.fi.pool.ntp.org",
-    "3.fi.pool.ntp.org"
+    "0.europe.pool.ntp.org",
+    "1.europe.pool.ntp.org",
+    "2.europe.pool.ntp.org",
+    "3.europe.pool.ntp.org"
   ]
 }
