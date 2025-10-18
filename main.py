@@ -7,6 +7,8 @@ import sys
 import urllib.parse
 from pathlib import Path
 
+from typing import override
+
 
 from src.ansi_codes import green, red, reset, yellow, bold
 from src.ascii_art import void
@@ -20,6 +22,7 @@ DEFAULTS = load_defaults()
 
 
 class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
+  @override
   def _format_action_invocation(self, action: argparse.Action) -> str:
     options = action.option_strings
     if not options:
