@@ -30,7 +30,6 @@ def step_01_settings(ctx: InstallerContext) -> None:
   ctx.luks_pass = set_luks()
   ctx.user_name = set_user()
   ctx.user_pass = set_pass(ctx.user_name)
-
   if ctx.config.repository != DEFAULTS["repository"]:
     ctx.repository = ctx.config.repository
     print(f"Using repository from command line: {ctx.repository}")
@@ -86,7 +85,6 @@ def step_02_disk_setup(ctx: InstallerContext) -> None:
   cmd(f"{mount}var_cache {ctx.root} /mnt/var/cache", ctx.dry)
   cmd(f"{mount}var_log {ctx.root} /mnt/var/log", ctx.dry)
   cmd(f"{mount}home {ctx.root} /mnt/home", ctx.dry)
-
   cmd("mkdir -p /mnt/boot/efi", ctx.dry)
   cmd(f"mount {ctx.esp} /mnt/boot/efi", ctx.dry)
 
@@ -150,8 +148,6 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
   )
   write("/mnt/etc/hostname", [f"{ctx.host}"], ctx.dry)
   write("/mnt/etc/hosts", [f"127.0.0.1 localhost {ctx.host}", "::1 localhost"], ctx.dry)
-
-  # Use NTP servers from config
   write("/mnt/etc/ntpd.conf", [f"server {str(server)}" for server in DEFAULTS["ntp"]], ctx.dry)
   write(
     "/mnt/etc/locale.conf", [f"export {var}={ctx.config.locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]], ctx.dry
