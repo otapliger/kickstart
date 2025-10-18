@@ -1,0 +1,12 @@
+# Void Linux Tier 1 Mirrors
+#
+# Tier 1 mirrors are maintained by the Void Linux Infrastructure Team.
+# These mirrors sync directly from the build servers and will always have
+# the latest packages available.
+#
+# Format: URL | Region | Location
+
+https://repo-fastly.voidlinux.org/current | Global | Fastly CDN
+https://repo-fi.voidlinux.org/current | Europe | Helsinki, Finland
+https://repo-de.voidlinux.org/current | Europe | Frankfurt, Germany
+https://mirrors.servercentral.com/voidlinux/current | North America | Chicago, USA

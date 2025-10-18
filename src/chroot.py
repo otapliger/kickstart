@@ -29,7 +29,7 @@ def section_grub_install(crypt_uuid: str, distro_name: str) -> str:
 
 def section_install_packages(repository: str) -> str:
   return dedent(f"""\
-    yes | xi && yes | xargs -a pkgs/pkgs.void xbps-install -USy --repository "{repository}"
+    yes | xi && yes | xargs -a config/void/pkgs.void xbps-install -USy --repository "{repository}"
   """)
 
 

@@ -11,9 +11,12 @@ from pathlib import Path
 from src.ansi_codes import green, red, reset, yellow, bold
 from src.ascii_art import void
 from src.steps import install
-from src.utils import error, info
+from src.utils import error, info, load_defaults
 from src.context import InstallerContext
 from textwrap import dedent
+
+
+DEFAULTS = load_defaults()
 
 
 class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -149,7 +152,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     "--libc",
     metavar="LIBC",
     type=str,
-    default="glibc",
+    default=DEFAULTS["LIBC"],
     help="C library implementation (glibc or musl) [default: %(default)s]",
     dest="libc",
   )
@@ -157,15 +160,15 @@ def create_argument_parser() -> argparse.ArgumentParser:
     "--repository",
     metavar="URL",
     type=str,
-    default="https://repo-fi.voidlinux.org/current",
-    help="repository URL for package installation [default: %(default)s]",
+    default=DEFAULTS["REPOSITORY"],
+    help="override interactive mirror selection with specific repository URL [default: %(default)s]",
     dest="repository",
   )
   parser.add_argument(
     "--timezone",
     metavar="TIMEZONE",
     type=str,
-    default="Europe/Helsinki",
+    default=DEFAULTS["TIMEZONE"],
     help="system timezone in Region/City format [default: %(default)s]",
     dest="timezone",
   )
@@ -173,7 +176,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     "--keymap",
     metavar="KEYMAP",
     type=str,
-    default="us",
+    default=DEFAULTS["KEYMAP"],
     help="keyboard layout for the system [default: %(default)s]",
     dest="keymap",
   )
@@ -181,7 +184,7 @@ def create_argument_parser() -> argparse.ArgumentParser:
     "--locale",
     metavar="LOCALE",
     type=str,
-    default="en_GB.UTF-8",
+    default=DEFAULTS["LOCALE"],
     help="system locale (e.g., en_US, en_US.UTF-8, C, POSIX) [default: %(default)s]",
     dest="locale",
   )
@@ -231,7 +234,6 @@ def main() -> None:
   parser = create_argument_parser()
   args = parser.parse_args()
 
-  # Print banner
   print(void)
   print(f"{green}Welcome to void.kickstart, a Void Linux installer.{reset}")
 
@@ -240,19 +242,15 @@ def main() -> None:
 
   print()
 
-  # Validate arguments
   validate_arguments(args)
 
-  # Check system requirements (skip some checks in dry run mode)
   if not args.dry:
     check_system_requirements()
   else:
     info("Skipping root and system checks in dry run mode")
 
-  # Create installer context
   ctx = InstallerContext(args)
 
-  # Run installation
   try:
     run_installation(ctx)
 

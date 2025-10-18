@@ -14,8 +14,12 @@ from src.utils import (
   set_luks,
   set_pass,
   set_user,
+  set_mirror,
+  load_defaults,
 )
 from src.context import InstallerContext
+
+DEFAULTS = load_defaults()
 
 
 def step_01_settings(ctx: InstallerContext) -> None:
@@ -24,6 +28,13 @@ def step_01_settings(ctx: InstallerContext) -> None:
   ctx.luks_pass = set_luks()
   ctx.user_name = set_user()
   ctx.user_pass = set_pass(ctx.user_name)
+
+  # Use command line repository if explicitly provided, otherwise prompt for mirror selection
+  if ctx.args.repository != DEFAULTS["REPOSITORY"]:
+    ctx.repository = ctx.args.repository
+    print(f"Using repository from command line: {ctx.repository}")
+  else:
+    ctx.repository = set_mirror()
   warning = f"{bold}{yellow}WARNING:{reset}"
   response = input(f"{warning} All data on {ctx.disk} will be erased. Are you sure you want to continue? [y/N]: ")
   if response.lower() not in ("y", "yes"):
@@ -85,10 +96,11 @@ def step_03_system_bootstrap(ctx: InstallerContext) -> None:
   cmd("cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys", ctx.args.dry)
 
   info("- installing base system")
-  path = os.path.join(os.path.dirname(__file__), "../pkgs/base.void")
+  path = os.path.join(os.path.dirname(__file__), "../config/void/base.void")
   with open(path) as f:
     pkgs = " ".join(line.strip() for line in f if line.strip())
-    cmd(f"xbps-install -Sy -R '{ctx.args.repository}' -r /mnt {pkgs}", ctx.args.dry)
+    repository = ctx.repository or DEFAULTS["REPOSITORY"]
+    cmd(f"xbps-install -Sy -R '{repository}' -r /mnt {pkgs}", ctx.args.dry)
 
 
 def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None:
@@ -132,7 +144,10 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
   )
   write("/mnt/etc/hostname", [f"{ctx.host}"], ctx.args.dry)
   write("/mnt/etc/hosts", [f"127.0.0.1 localhost {ctx.host}", "::1 localhost"], ctx.args.dry)
-  write("/mnt/etc/ntpd.conf", [f"server {i}.fi.pool.ntp.org" for i in range(4)], ctx.args.dry)
+
+  # Use NTP servers from config
+  ntp_servers = DEFAULTS["NTP_SERVERS"].split()
+  write("/mnt/etc/ntpd.conf", [f"server {server}" for server in ntp_servers], ctx.args.dry)
   write(
     "/mnt/etc/locale.conf", [f"export {var}={ctx.args.locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]], ctx.args.dry
   )
@@ -146,11 +161,12 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
     cmd("xbps-reconfigure -f glibc-locales -r /mnt", ctx.args.dry)
 
   info("- installing packages and configuring services")
+  repository = ctx.repository or DEFAULTS["REPOSITORY"]
   generate_chroot(
     path="/mnt/root/chroot.sh",
     username=ctx.user_name or "",
     distro_name="Void",
-    repository=ctx.args.repository,
+    repository=repository,
     dry_run=ctx.args.dry,
   )
   cmd("cp /etc/resolv.conf /mnt/etc", ctx.args.dry)

@@ -1,0 +1,35 @@
+# Void Linux Installer Default Configuration
+#
+# This file contains default values for the Void Linux installer.
+# These values can be overridden via command line arguments.
+#
+# Format: KEY=VALUE (no spaces around =)
+# Lines starting with # are comments and will be ignored.
+
+# Repository Configuration
+# Default mirror for package installation
+REPOSITORY=https://repo-fastly.voidlinux.org/current
+
+# System Configuration
+# Default timezone (Region/City format)
+TIMEZONE=Europe/Helsinki
+
+# Default system locale (language_COUNTRY.encoding format)
+LOCALE=en_GB.UTF-8
+
+# Default keyboard layout
+KEYMAP=us
+
+# Default C library implementation (glibc or musl)
+LIBC=glibc
+
+# Installation Configuration
+# Default hostname prefix (user will be prompted to customize)
+# HOSTNAME_PREFIX=void
+
+# Default username (user will be prompted to customize)
+# DEFAULT_USER=user
+
+# Network Configuration
+# Default NTP servers (space-separated)
+NTP_SERVERS=0.fi.pool.ntp.org 1.fi.pool.ntp.org 2.fi.pool.ntp.org 3.fi.pool.ntp.org

@@ -7,7 +7,8 @@ class InstallerContext:
   Holds the state and configuration for the Void Linux installation process.
 
   This context object is passed between installation steps to maintain
-  user choices and system state throughout the installation.
+  user choices and system state throughout the installation, including
+  mirror selection, disk configuration, and user credentials.
   """
 
   def __init__(self, args: Namespace) -> None:
@@ -20,6 +21,7 @@ class InstallerContext:
     self.luks_pass: Optional[str] = None
     self.user_name: Optional[str] = None
     self.user_pass: Optional[str] = None
+    self.repository: Optional[str] = None
 
     # System-generated paths (set during disk setup)
     self.cryptroot: Optional[str] = None
