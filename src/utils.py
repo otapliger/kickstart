@@ -3,8 +3,7 @@ import os
 import getpass
 import sys
 import re
-from typing import Optional
-from argparse import Namespace
+
 from src.ansi_codes import green, red, reset, gray
 
 
@@ -104,16 +103,3 @@ def set_luks() -> str:
       continue
     print()
     return luks_pass
-
-
-class InstallerContext:
-  def __init__(self, args: Namespace) -> None:
-    self.args: Namespace = args
-    self.host: Optional[str] = None
-    self.disk: Optional[str] = None
-    self.luks_pass: Optional[str] = None
-    self.user_name: Optional[str] = None
-    self.user_pass: Optional[str] = None
-    self.cryptroot: Optional[str] = None
-    self.esp: Optional[str] = None
-    self.root: Optional[str] = None

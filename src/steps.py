@@ -14,8 +14,8 @@ from src.utils import (
   set_luks,
   set_pass,
   set_user,
-  InstallerContext,
 )
+from src.context import InstallerContext
 
 
 def step_01_settings(ctx: InstallerContext) -> None:

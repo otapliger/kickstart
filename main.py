@@ -11,7 +11,8 @@ from pathlib import Path
 from src.ansi_codes import green, red, reset, yellow, bold
 from src.ascii_art import void
 from src.steps import install
-from src.utils import error, info, InstallerContext
+from src.utils import error, info
+from src.context import InstallerContext
 from textwrap import dedent
 
 
