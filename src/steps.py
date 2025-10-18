@@ -150,10 +150,7 @@ def step_14_chroot_setup(ctx):
   info("- setting up the system (settings, packages and users)")
   generate_chroot(
     path="/mnt/root/chroot.sh",
-    hostname=ctx.host,
     username=ctx.user_name,
-    luks_pass=ctx.luks_pass,
-    btrfs_opts="compress=zstd,noatime",
     distro_name="Void",
     repository=ctx.args.repository,
     dry_run=ctx.args.dry,
