@@ -28,8 +28,13 @@ def cmd(command: str, dry_run: bool = False) -> None:
     sys.exit(1)
 
 
-def write(path: str, lines: list[str]) -> None:
+def write(path: str, lines: list[str], dry_run: bool = False) -> None:
   assert isinstance(lines, list)
+  if dry_run:
+    info(f"{gray}[DRY RUN] Writing to {path}:")
+    for line in lines:
+      print(f"{gray}  {line}{reset}")
+    return
   open(path, "w").close()
   with open(path, "a") as f:
     for line in lines:

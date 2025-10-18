@@ -131,6 +131,7 @@ def step_13_etc_bootstrap(ctx: InstallerContext) -> None:
       f"UUID={efi_uuid} /boot/efi vfat defaults,noatime 0 2",
       "tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0",
     ],
+    ctx.args.dry,
   )
   write(
     "/mnt/etc/sudoers",
@@ -141,14 +142,21 @@ def step_13_etc_bootstrap(ctx: InstallerContext) -> None:
       "%wheel ALL=(ALL:ALL) ALL",
       "@includedir /etc/sudoers.d",
     ],
+    ctx.args.dry,
   )
-  write("/mnt/etc/hostname", [f"{ctx.host}"])
-  write("/mnt/etc/hosts", [f"127.0.0.1 localhost {ctx.host}", "::1 localhost"])
-  write("/mnt/etc/ntpd.conf", [f"server {i}.fi.pool.ntp.org" for i in range(4)])
-  write("/mnt/etc/locale.conf", [f"export {var}={ctx.args.locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]])
-  write("/mnt/etc/rc.conf", [f'TIMEZONE="{ctx.args.timezone}"', 'HARDWARECLOCK="UTC"', f'KEYMAP="{ctx.args.keymap}"'])
+  write("/mnt/etc/hostname", [f"{ctx.host}"], ctx.args.dry)
+  write("/mnt/etc/hosts", [f"127.0.0.1 localhost {ctx.host}", "::1 localhost"], ctx.args.dry)
+  write("/mnt/etc/ntpd.conf", [f"server {i}.fi.pool.ntp.org" for i in range(4)], ctx.args.dry)
+  write(
+    "/mnt/etc/locale.conf", [f"export {var}={ctx.args.locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]], ctx.args.dry
+  )
+  write(
+    "/mnt/etc/rc.conf",
+    [f'TIMEZONE="{ctx.args.timezone}"', 'HARDWARECLOCK="UTC"', f'KEYMAP="{ctx.args.keymap}"'],
+    ctx.args.dry,
+  )
   if ctx.args.libc == "glibc":
-    write("/mnt/etc/default/libc-locales", [f"{ctx.args.locale}"])
+    write("/mnt/etc/default/libc-locales", [f"{ctx.args.locale}"], ctx.args.dry)
     cmd("xbps-reconfigure -f glibc-locales -r /mnt", ctx.args.dry)
 
 
