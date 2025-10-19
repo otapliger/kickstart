@@ -26,19 +26,19 @@ A user-friendly, automated installer for Void Linux that provisions an encrypted
 
 Dry run (recommended first):
 ```
-python3.12 main.py --dry
+python3 kickstart.py --dry
 ```
 
 Default install (DESTRUCTIVE after confirmation prompt):
 ```
-sudo python3.12 main.py
+sudo python3 kickstart.py
 ```
 
 Common customizations:
 ```
-sudo python3.12 main.py --timezone Europe/Helsinki --keymap us --libc musl
-sudo python3.12 main.py --repository https://repo-fi.voidlinux.org/current
-python3.12 main.py --version
+sudo python3 kickstart.py --timezone Europe/Helsinki --keymap us --libc musl
+sudo python3 kickstart.py --repository https://repo-fi.voidlinux.org/current
+python3 kickstart.py --version
 ```
 
 Dry run mode suppresses all state changes:
@@ -82,7 +82,7 @@ Configuration lives in `config/void/`:
 - `base.json` – minimal base package set
 - `pkgs.json` – extended curated packages (GUI, dev tools, multimedia, productivity)
 
-CLI options (`main.py`):
+CLI options (`kickstart.py`):
 - `--dry` – Preview all steps only
 - `--libc <glibc|musl>` – Select C library implementation
 - `--repository <URL>` – Override interactive mirror selection
@@ -96,7 +96,7 @@ Invalid values abort early before any destructive action.
 ## Architecture
 
 Core components:
-- `main.py` orchestrates argument parsing, validation, step execution.
+- `kickstart.py` orchestrates argument parsing, validation, step execution.
 - `src/context.py` defines immutable `Config` + mutable `InstallerContext` state passed between steps.
 - `src/steps.py` implements deterministic, ordered procedural steps.
 - `src/utils.py` provides prompts, JSON loading, command/file helpers, mirror selection.
