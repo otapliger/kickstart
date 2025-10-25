@@ -2,11 +2,11 @@
   "base-devel",
   "base-system",
   "cryptsetup",
+  "dhcpcd",
   "efibootmgr",
   "grub-btrfs",
   "grub-x86_64-efi",
   "linux",
-  "NetworkManager",
   "void-repo-nonfree",
   "xtools"
 ]

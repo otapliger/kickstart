@@ -59,7 +59,7 @@ def _section_post_install(username: str) -> str:
     xbps-reconfigure --force --all
   """)
   services = dedent("""\
-    ln -srf /etc/sv/{dbus,elogind,grub-btrfs,NetworkManager,openntpd,ufw} /var/service/
+    ln -srf /etc/sv/{chronyd,dbus,dhcpcd,elogind,grub-btrfs,ufw} /var/service/
   """)
   firewall = dedent("""\
     ufw default deny incoming
