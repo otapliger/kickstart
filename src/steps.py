@@ -24,13 +24,12 @@ DEFAULTS = load_defaults()
 
 
 def step_01_settings(ctx: InstallerContext) -> None:
-  # Collect settings with command line hostname, profile hostname, or prompt
   if ctx.config.hostname:
     ctx.host = ctx.config.hostname
   elif ctx.profile and ctx.profile.hostname:
     ctx.host = ctx.profile.hostname
   else:
-    ctx.host = set_host()
+    ctx.host = set_host(ctx.distro_id)
 
   if ctx.profile:
     print(f"  • C library: {ctx.config.libc}")
@@ -196,7 +195,7 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
     path="/mnt/root/chroot.sh",
     ctx=ctx,
     luks_pass=ctx.luks_pass or "",
-    distro_name="Void",
+    distro_name=ctx.distro_name,
     dry_run=ctx.dry,
   )
   cmd("cp /etc/resolv.conf /mnt/etc", ctx.dry)

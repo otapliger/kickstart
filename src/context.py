@@ -46,6 +46,10 @@ class InstallerContext:
     self.config: Config = config
     self.profile: Optional[InstallationProfile] = None
 
+    # Distribution information
+    self.distro_name: str = "Linux"
+    self.distro_id: str = "linux"
+
     # User-provided configuration
     self.host: str | None = None
     self.disk: str | None = None

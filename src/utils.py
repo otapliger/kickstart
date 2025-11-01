@@ -4,8 +4,8 @@ import getpass
 import sys
 import re
 import json
-from typing import TypedDict
-from src.ansi_codes import green, red, reset, gray
+from typing import TypedDict, Tuple
+from src.ansi_codes import green, red, reset, gray, yellow
 from src.validations import validate_defaults_json, validate_mirrors_json
 
 
@@ -26,6 +26,11 @@ class MirrorData(TypedDict):
   url: str
   region: str
   location: str
+
+
+def warning(message: str) -> None:
+  print()
+  print(f"{yellow}{message}{reset}")
 
 
 def error(message: str) -> None:
@@ -222,3 +227,46 @@ def set_mirror() -> str:
         error(f"Invalid selection. Please choose between 1 and {len(mirrors)}.")
     except ValueError:
       error("Invalid input. Please enter a number or press Enter for default.")
+
+
+def get_distro_info(file_path: str = "/etc/os-release", dry_run: bool = False) -> Tuple[str, str]:
+  """
+  Extract NAME and ID from os-release file.
+
+  Args:
+      file_path: Path to os-release file
+      dry_run: If True, show warning instead of exiting on errors
+
+  Returns:
+      Tuple of (name, id) where both default to "Linux"/"linux" if not found
+  """
+  try:
+    with open(file_path, "r") as f:
+      name = None
+      distro_id = None
+      for line in f:
+        line = line.strip()
+        if not line or line.startswith("#"):
+          continue
+        if line.startswith("NAME="):
+          value = line.split("=", 1)[1]
+          # If double quotes, take first word only
+          if value.startswith('"') and value.endswith('"'):
+            value = value[1:-1].split()[0]
+          name = value.capitalize()
+        elif line.startswith("ID="):
+          value = line.split("=", 1)[1]
+          # If double quotes, take first word only
+          if value.startswith('"') and value.endswith('"'):
+            value = value[1:-1].split()[0]
+          distro_id = value.lower()
+        if name and distro_id:
+          break
+      return name or "Linux", distro_id or "linux"
+  except (FileNotFoundError, IOError) as e:
+    if dry_run:
+      warning(f"Warning: Failed to read distribution info\n{reset}{e}")
+      return "Linux", "linux"
+    else:
+      error(f"Failed to read distribution info from {file_path}: {e}")
+      sys.exit(1)

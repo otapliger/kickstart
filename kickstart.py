@@ -8,7 +8,7 @@ from typing import override
 from src.ansi_codes import green, red, reset, yellow, bold
 from src.ascii_art import void
 from src.steps import install
-from src.utils import error, info, load_defaults
+from src.utils import error, info, load_defaults, get_distro_info
 from src.context import InstallerContext, Config
 from src.profiles import ProfileLoader
 from src.validations import validate_cli_arguments
@@ -199,8 +199,6 @@ def main() -> None:
   if config.dry:
     print(f"{yellow}{bold}DRY RUN MODE{reset} - No actual changes will be made to your system")
 
-  print()
-
   errors = validate_cli_arguments(
     repository=config.repository,
     timezone=config.timezone,
@@ -217,12 +215,18 @@ def main() -> None:
     print(f"\n{yellow}Use --help for valid options{reset}")
     sys.exit(1)
 
+  # Validate os-release early to catch issues before any system changes
+  distro_name, distro_id = get_distro_info(dry_run=config.dry)
+  print()
+
   if not config.dry:
     _check_system_requirements()
   else:
     info("Skipping root and system checks in dry run mode")
 
   ctx = InstallerContext(config)
+  ctx.distro_name = distro_name
+  ctx.distro_id = distro_id
 
   if config.profile:
     try:
@@ -241,12 +245,12 @@ def main() -> None:
       if ctx.profile.config.repository and ctx.config.repository == DEFAULTS["repository"]:
         ctx.config.repository = ctx.profile.config.repository
 
-      print()
     except Exception as e:
       error(f"Failed to load profile: {e}")
       sys.exit(1)
 
   try:
+    print()
     _run_installation(ctx)
 
     if config.dry:
