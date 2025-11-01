@@ -24,7 +24,6 @@ DEFAULTS = load_defaults()
 
 
 def step_01_settings(ctx: InstallerContext) -> None:
-  # Show profile information if loaded
   if ctx.profile:
     if ctx.profile.config.libc:
       print(f"  • C library: {ctx.profile.config.libc}")
@@ -36,11 +35,11 @@ def step_01_settings(ctx: InstallerContext) -> None:
       print(f"  • Locale: {ctx.profile.config.locale}")
     if ctx.profile.hostname:
       print(f"  • Hostname: {ctx.profile.hostname}")
-
     print()
 
-  # Collect settings with profile hostname or prompt
-  if ctx.profile and ctx.profile.hostname:
+  if ctx.config.hostname:
+    ctx.host = ctx.config.hostname
+  elif ctx.profile and ctx.profile.hostname:
     ctx.host = ctx.profile.hostname
   else:
     ctx.host = set_host()
@@ -68,8 +67,8 @@ def step_01_settings(ctx: InstallerContext) -> None:
   if response.lower() not in ("y", "yes"):
     error("Installation aborted. No changes were made to the system.")
     sys.exit(0)
-
   print()
+
   ctx.cryptroot = "/dev/disk/by-partlabel/ENCRYPTED"
   ctx.esp = "/dev/disk/by-partlabel/ESP"
   ctx.root = f"/dev/mapper/{ctx.host}"

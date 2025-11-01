@@ -20,6 +20,9 @@ DEFAULTS = load_defaults()
 
 
 class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
+  def __init__(self, prog: str, **kwargs) -> None:
+    super().__init__(prog, max_help_position=30, width=80, **kwargs)
+
   @override
   def _format_action_invocation(self, action: argparse.Action) -> str:
     options = action.option_strings
@@ -79,6 +82,21 @@ def _validate_libc(libc: str) -> bool:
   return libc.lower() in valid_libcs
 
 
+def _validate_hostname(hostname: str) -> bool:
+  """Validate hostname format according to RFC 1123."""
+  if not hostname or len(hostname) > 253:
+    return False
+  labels = hostname.split(".")
+  for label in labels:
+    if not label or len(label) > 63:
+      return False
+    if not (label[0].isalnum() and label[-1].isalnum()):
+      return False
+    if not all(c.isalnum() or c == "-" for c in label):
+      return False
+  return True
+
+
 def _validate_profile(source: str) -> bool:
   """Validate profile source path or URL. Returns True if valid, False if invalid."""
   if source.startswith(("http://", "https://")):
@@ -120,6 +138,10 @@ def _validate_arguments(config: Config) -> None:
   if not _validate_libc(config.libc):
     errors.append(f"Invalid libc: {config.libc} (must be 'glibc' or 'musl')")
 
+  if config.hostname:
+    if not _validate_hostname(config.hostname):
+      errors.append(f"Invalid hostname: {config.hostname} (must follow RFC 1123 format)")
+
   if config.profile:
     if not _validate_profile(config.profile):
       errors.append(f"Profile file not found: {config.profile}")
@@ -149,7 +171,8 @@ def _create_argument_parser() -> argparse.ArgumentParser:
       Examples:
         %(prog)s --dry                                      # Preview installation steps
         %(prog)s --libc musl --keymap colemak               # Custom configuration
-        %(prog)s --tz Asia/Bangkok                          # Different timezone
+        %(prog)s -r https://mirrors.example.com/void        # Different repository
+        %(prog)s --hostname voidlinux                       # Set custom hostname
         %(prog)s --profile ./profiles/minimal.json          # Use local profile
 
       For more information, visit: https://github.com/otapliger/kickstart
@@ -182,7 +205,7 @@ def _create_argument_parser() -> argparse.ArgumentParser:
   )
   _ = parser.add_argument(
     "-r",
-    "--repo",
+    "--repository",
     metavar="URL",
     type=str,
     default=DEFAULTS["repository"],
@@ -190,7 +213,8 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     dest="repository",
   )
   _ = parser.add_argument(
-    "--tz",
+    "-t",
+    "--timezone",
     metavar="TIMEZONE",
     type=str,
     default=DEFAULTS["timezone"],
@@ -213,6 +237,13 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     default=DEFAULTS["locale"],
     help="system locale (e.g., en_US, en_US.UTF-8, C, POSIX) [default: %(default)s]",
     dest="locale",
+  )
+  _ = parser.add_argument(
+    "--hostname",
+    metavar="HOSTNAME",
+    type=str,
+    help="system hostname",
+    dest="hostname",
   )
   _ = parser.add_argument("--version", action="version", version="void.kickstart 0.1.0")
 

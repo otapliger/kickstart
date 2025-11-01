@@ -26,7 +26,7 @@ A user-friendly, automated installer for Void Linux that provisions an encrypted
 
 Dry run (recommended first):
 ```
-python3 kickstart.py --dry
+python3 kickstart.py -d
 ```
 
 Default install (DESTRUCTIVE after confirmation prompt):
@@ -53,13 +53,14 @@ Configuration lives in `config/void/`:
 - `mirrors.json` – mirror metadata
 
 CLI options (`kickstart.py`):
-- `--dry` – Preview all steps only
-- `--profile <source>` – Load installation profile from local file or HTTP URL
+- `-d, --dry` – Preview all steps only
+- `-p, --profile <source>` – Load installation profile from local file or HTTP URL
 - `--libc <glibc|musl>` – Select C library implementation
-- `--repository <URL>` – Override interactive mirror selection
-- `--timezone <Region/City>` – Set system timezone (e.g. `Europe/London`)
+- `-r, --repository <URL>` – Override interactive mirror selection
+- `-t, --timezone <Region/City>` – Set system timezone (e.g. `Europe/London`)
 - `--locale <locale>` – System locale (e.g. `en_GB.UTF-8`, `C`, `POSIX`)
-- `--keymap <layout>` – Keyboard layout (e.g. `gb`, `us`)
+- `-k, --keymap <layout>` – Keyboard layout (e.g. `gb`, `us`)
+- `--hostname <hostname>` – Set system hostname
 - `--version` – Show installer version and exit
 
 Invalid values abort early before any destructive action.
@@ -72,12 +73,24 @@ Installation profiles allow you to define reusable configurations in JSON format
 
 Load a local profile:
 ```
-sudo python3 kickstart.py --profile ./profiles/desktop.json
+sudo python3 kickstart.py -p ./profiles/desktop.json
 ```
 
 Load a remote profile:
 ```
-sudo python3 kickstart.py --profile https://example.com/profiles/minimal.json
+sudo python3 kickstart.py -p https://example.com/profiles/minimal.json
+```
+
+Common usage examples:
+```
+# Dry run with custom hostname and timezone
+sudo python3 kickstart.py -d --hostname myserver -t America/New_York
+
+# Install with musl libc and custom keymap
+sudo python3 kickstart.py --libc musl -k colemak --hostname voidbox
+
+# Use specific repository and profile
+sudo python3 kickstart.py --repository https://mirrors.example.com/void -p ./custom.json
 ```
 
 ### Available Profiles

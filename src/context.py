@@ -15,6 +15,7 @@ class Config:
   timezone: str
   keymap: str
   locale: str
+  hostname: Optional[str] = None
   profile: Optional[str] = None
 
   @classmethod
@@ -27,6 +28,7 @@ class Config:
       timezone=str(getattr(args, "timezone", "UTC")),
       keymap=str(getattr(args, "keymap", "us")),
       locale=str(getattr(args, "locale", "C")),
+      hostname=getattr(args, "hostname", None),
       profile=getattr(args, "profile", None),
     )
 
