@@ -17,16 +17,20 @@ def _section_header() -> str:
 def _section_luks_key_setup(crypt_uuid: str, luks_pass: str) -> str:
   return dedent(f"""\
     mkdir -p /etc/dracut.conf.d
-    dd if=/dev/urandom of=/crypto.key bs=1024 count=4
-    chmod 000 /crypto.key
+    dd if=/dev/urandom of=/boot/crypto.key bs=1024 count=4
+    chmod 000 /boot/crypto.key
 
     tee /etc/dracut.conf.d/10-crypt.conf &> /dev/null << EOF
-    install_items+=" /crypto.key "
-    add_dracutmodules+=" crypt "
+    install_items+=" /boot/crypto.key /etc/crypttab "
     EOF
 
-    echo -n '{luks_pass}' | cryptsetup luksAddKey /dev/disk/by-partlabel/ENCRYPTED /crypto.key
+    tee /etc/dracut.conf.d/20-modules.conf &> /dev/null << EOF
+    add_dracutmodules+=" crypt btrfs resume "
+    EOF
+
+    echo -n '{luks_pass}' | cryptsetup luksAddKey /dev/disk/by-partlabel/ENCRYPTED /boot/crypto.key
     echo "ENCRYPTED UUID={crypt_uuid} /crypto.key luks,discard" >> /etc/crypttab
+    chmod -R g-rwx,o-rwx /boot
   """)
 
 
@@ -35,7 +39,7 @@ def _section_grub_install(crypt_uuid: str, distro_name: str) -> str:
     mount --types efivarfs none /sys/firmware/efi/efivars
 
     tee /etc/default/grub &> /dev/null << EOF
-    GRUB_CMDLINE_LINUX_DEFAULT="quiet rd.auto=1 rd.luks.name={crypt_uuid}=ENCRYPTED rd.luks.allow-discards={crypt_uuid} rd.luks.key=/crypto.key"
+    GRUB_CMDLINE_LINUX_DEFAULT="quiet rd.auto=1 rd.luks.name={crypt_uuid}=ENCRYPTED rd.luks.allow-discards={crypt_uuid}"
     GRUB_CMDLINE_LINUX=""
     GRUB_DEFAULT=0
     GRUB_DISTRIBUTOR={distro_name}
