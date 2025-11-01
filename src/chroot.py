@@ -28,7 +28,10 @@ def _section_luks_key_setup(crypt_uuid: str, luks_pass: str) -> str:
     add_dracutmodules+=" crypt btrfs resume "
     EOF
 
-    echo -n '{luks_pass}' | cryptsetup luksAddKey /dev/disk/by-partlabel/ENCRYPTED /boot/crypto.key
+    cryptsetup luksAddKey /dev/disk/by-partlabel/ENCRYPTED /boot/crypto.key << EOF
+    {luks_pass}
+    EOF
+
     echo "ENCRYPTED UUID={crypt_uuid} /crypto.key luks,discard" >> /etc/crypttab
     chmod -R g-rwx,o-rwx /boot
   """)
