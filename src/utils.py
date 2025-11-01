@@ -4,8 +4,9 @@ import getpass
 import sys
 import re
 import json
-from typing import Any, TypedDict
+from typing import TypedDict
 from src.ansi_codes import green, red, reset, gray
+from src.validations import validate_defaults_json, validate_mirrors_json
 
 
 def info(message: str) -> None:
@@ -77,7 +78,7 @@ def write(path: str, lines: list[str], dry_run: bool = False) -> None:
 
 def set_user(default: str | None = None) -> str:
   while True:
-    prompt = f"Choose a username for your new user"
+    prompt = "Choose a username for your new user"
     if default:
       prompt += f" [{default}]"
     prompt += ": "
@@ -106,7 +107,7 @@ def set_pass(user_name: str) -> str:
 
 def set_host(default: str | None = None) -> str:
   while True:
-    prompt = f"Choose a hostname for this system"
+    prompt = "Choose a hostname for this system"
     if default:
       prompt += f" [{default}]"
     prompt += ": "
@@ -152,26 +153,13 @@ def set_luks() -> str:
     return luks_pass
 
 
-def _validate_defaults_json(data: Any) -> dict[str, Any]:
-  """Validate and return defaults JSON data with proper typing."""
-  if not isinstance(data, dict):
-    raise ValueError("Defaults JSON must be an object")
-  required_keys = {"repository", "timezone", "locale", "keymap", "libc", "ntp"}
-  missing_keys = required_keys - data.keys()
-  if missing_keys:
-    raise KeyError(f"Missing required keys: {missing_keys}")
-  if not isinstance(data["ntp"], list):
-    raise ValueError("ntp field must be a list")
-  return data
-
-
 def load_defaults() -> DefaultsConfig:
   """Load default values from defaults.json file."""
   defaults_file = os.path.join(os.path.dirname(__file__), "../config/void/defaults.json")
   try:
     with open(defaults_file, "r") as f:
       defaults_data = json.load(f)
-      data = _validate_defaults_json(defaults_data)
+      data = validate_defaults_json(defaults_data)
       return DefaultsConfig(
         repository=str(data["repository"]),
         timezone=str(data["timezone"]),
@@ -188,25 +176,13 @@ def load_defaults() -> DefaultsConfig:
     sys.exit(1)
 
 
-def _validate_mirrors_json(data: Any) -> list[MirrorData]:
-  """Validate and return mirrors JSON data with proper typing."""
-  if not isinstance(data, list):
-    raise ValueError("Mirrors JSON must be an array")
-  for item in data:
-    if not isinstance(item, dict):
-      raise ValueError("Each mirror must be an object")
-    if not all(key in item for key in ["url", "region", "location"]):
-      raise ValueError("Each mirror must have url, region, and location fields")
-  return data
-
-
 def load_mirrors() -> list[tuple[str, str, str]]:
   """Load mirrors from mirrors.json file and return as list of (url, region, location) tuples."""
   mirrors_file = os.path.join(os.path.dirname(__file__), "../config/void/mirrors.json")
   try:
     with open(mirrors_file, "r") as f:
       mirrors_data = json.load(f)
-      data = _validate_mirrors_json(mirrors_data)
+      data = validate_mirrors_json(mirrors_data)
       mirrors = [(mirror["url"], mirror["region"], mirror["location"]) for mirror in data]
   except (FileNotFoundError, json.JSONDecodeError) as e:
     error(f"Error loading mirrors.json: {e}")

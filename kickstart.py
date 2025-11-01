@@ -2,9 +2,7 @@
 
 import argparse
 import os
-import re
 import sys
-import urllib.parse
 from pathlib import Path
 from typing import override
 from src.ansi_codes import green, red, reset, yellow, bold
@@ -13,6 +11,7 @@ from src.steps import install
 from src.utils import error, info, load_defaults
 from src.context import InstallerContext, Config
 from src.profiles import ProfileLoader
+from src.validations import validate_cli_arguments
 from textwrap import dedent
 
 
@@ -39,72 +38,6 @@ class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
     return parts[-1]
 
 
-def _validate_url(url: str) -> bool:
-  """Validate that a URL is properly formatted."""
-  if not url:
-    return False
-
-  result = urllib.parse.urlparse(url)
-  return bool(result.scheme and result.netloc)
-
-
-def _validate_timezone(timezone: str) -> bool:
-  """Validate timezone against common timezone patterns."""
-  if "/" not in timezone:
-    return False
-  parts = timezone.split("/")
-  if len(parts) != 2:
-    return False
-  region, city = parts
-  if not region.replace("_", "").isalpha() or not city.replace("_", "").isalpha():
-    return False
-  return True
-
-
-def _validate_locale(locale: str) -> bool:
-  """Validate locale format - supports various glibc locale formats."""
-  if not locale:
-    return False
-
-  # Allow C/POSIX locales
-  if locale in ("C", "POSIX"):
-    return True
-
-  # Basic pattern: language[_territory][.encoding][@modifier]
-  # Examples: en, en_US, en_US.UTF-8, en_US@euro, de_DE.ISO-8859-1@euro
-  pattern = r"^[a-z]{2,3}(_[A-Z]{2})?(\.[A-Za-z0-9_-]+)?(@[A-Za-z0-9_-]+)?$"
-  return bool(re.match(pattern, locale))
-
-
-def _validate_libc(libc: str) -> bool:
-  """Validate C library implementation."""
-  valid_libcs = {"glibc", "musl"}
-  return libc.lower() in valid_libcs
-
-
-def _validate_hostname(hostname: str) -> bool:
-  """Validate hostname format according to RFC 1123."""
-  if not hostname or len(hostname) > 253:
-    return False
-  labels = hostname.split(".")
-  for label in labels:
-    if not label or len(label) > 63:
-      return False
-    if not (label[0].isalnum() and label[-1].isalnum()):
-      return False
-    if not all(c.isalnum() or c == "-" for c in label):
-      return False
-  return True
-
-
-def _validate_profile(source: str) -> bool:
-  """Validate profile source path or URL. Returns True if valid, False if invalid."""
-  if source.startswith(("http://", "https://")):
-    return True
-  else:
-    return Path(source).exists()
-
-
 def _check_system_requirements() -> None:
   """Check if the system meets installation requirements."""
   if os.geteuid() != 0:
@@ -120,38 +53,6 @@ def _check_system_requirements() -> None:
   if not Path("/proc/mounts").exists():
     error("System appears to be in an invalid state - /proc not mounted.")
     sys.exit(3)
-
-
-def _validate_arguments(config: Config) -> None:
-  """Validate all command line arguments."""
-  errors: list[str] = []
-
-  if not _validate_url(config.repository):
-    errors.append(f"Invalid repository URL: {config.repository}")
-
-  if not _validate_timezone(config.timezone):
-    errors.append(f"Invalid timezone: {config.timezone} (expected format: Region/City)")
-
-  if not _validate_locale(config.locale):
-    errors.append(f"Invalid locale: {config.locale} (expected format: language[_COUNTRY][.encoding][@modifier])")
-
-  if not _validate_libc(config.libc):
-    errors.append(f"Invalid libc: {config.libc} (must be 'glibc' or 'musl')")
-
-  if config.hostname:
-    if not _validate_hostname(config.hostname):
-      errors.append(f"Invalid hostname: {config.hostname} (must follow RFC 1123 format)")
-
-  if config.profile:
-    if not _validate_profile(config.profile):
-      errors.append(f"Profile file not found: {config.profile}")
-
-  if errors:
-    error("Invalid arguments provided:")
-    for err in errors:
-      print(f"  • {err}")
-    print(f"\n{yellow}Use --help for valid options{reset}")
-    sys.exit(1)
 
 
 def _create_argument_parser() -> argparse.ArgumentParser:
@@ -300,7 +201,21 @@ def main() -> None:
 
   print()
 
-  _validate_arguments(config)
+  errors = validate_cli_arguments(
+    repository=config.repository,
+    timezone=config.timezone,
+    locale=config.locale,
+    libc=config.libc,
+    hostname=config.hostname,
+    profile=config.profile,
+  )
+
+  if errors:
+    error("Invalid arguments provided:")
+    for err in errors:
+      print(f"  • {err}")
+    print(f"\n{yellow}Use --help for valid options{reset}")
+    sys.exit(1)
 
   if not config.dry:
     _check_system_requirements()
@@ -309,12 +224,12 @@ def main() -> None:
 
   ctx = InstallerContext(config)
 
-  # Load profile if specified
   if config.profile:
     try:
       ctx.profile = ProfileLoader.load(config.profile)
 
-      # Apply profile configuration overrides to base config (only if not explicitly set via CLI)
+      # Apply profile configuration overrides to base config
+      # (only if not explicitly set via CLI)
       if ctx.profile.config.libc and ctx.config.libc == DEFAULTS["libc"]:
         ctx.config.libc = ctx.profile.config.libc
       if ctx.profile.config.timezone and ctx.config.timezone == DEFAULTS["timezone"]:

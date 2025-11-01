@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from src.ansi_codes import green, yellow, reset
 from src.utils import error, info
+from src.validations import validate_profile_json
 
 
 @dataclass
@@ -262,7 +263,7 @@ class ProfileLoader:
         data = cls._load_from_file(source)
 
       # Perform automatic validation - only show output if validation fails
-      validation_issues = cls.validate_profile_json(data)
+      validation_issues = validate_profile_json(data)
       if validation_issues:
         error(f"Profile validation failed for '{source}':")
         for issue in validation_issues:
@@ -277,48 +278,6 @@ class ProfileLoader:
     except Exception as e:
       error(f"Failed to load profile from '{source}': {e}")
       raise
-
-  @staticmethod
-  def validate_profile_json(data: dict[str, object]) -> list[str]:
-    """
-    Validate profile JSON structure and return list of issues.
-
-    Returns empty list if valid, list of error messages if invalid.
-    """
-    issues: list[str] = []
-
-    # Required fields
-    if not isinstance(data.get("name"), str):
-      issues.append("Profile must have a 'name' field as string")
-
-    if not isinstance(data.get("description"), str):
-      issues.append("Profile must have a 'description' field as string")
-
-    # Optional but validated fields
-    config = data.get("config", {})
-    if config is not None and not isinstance(config, dict):
-      issues.append("'config' field must be an object")
-
-    packages = data.get("packages", {})
-    if packages is not None and not isinstance(packages, dict):
-      issues.append("'packages' field must be an object")
-
-    # Validate config values if present
-    if isinstance(config, dict):
-      libc = config.get("libc")
-      if libc is not None and libc not in ["glibc", "musl"]:
-        issues.append("config.libc must be 'glibc' or 'musl'")
-
-    # Validate package structure if present
-    if isinstance(packages, dict):
-      for field in ["additional", "exclude"]:
-        value = packages.get(field)
-        if value is not None and not isinstance(value, list):
-          issues.append(f"packages.{field} must be a list")
-        elif isinstance(value, list) and not all(isinstance(item, str) for item in value):
-          issues.append(f"packages.{field} must be a list of strings")
-
-    return issues
 
 
 def create_example_profile() -> dict[str, object]:
