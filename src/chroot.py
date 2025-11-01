@@ -87,19 +87,6 @@ def _section_install_packages(ctx: InstallerContext) -> str:
   """)
 
 
-def _section_third_party_packages() -> str:
-  opt = dedent("""\
-    mkdir -p /opt
-  """)
-  neovim = dedent("""\
-    TMP_NVIM=$(mktemp)
-    curl -sSLo "${TMP_NVIM}" https://github.com/neovim/neovim/releases/download/nightly/nvim-linux-x86_64.tar.gz
-    tar -C /opt -xzf "${TMP_NVIM}" && mv /opt/nvim-linux-x86_64 /opt/nvim-nightly && ln -sf /opt/nvim-nightly/bin/nvim /usr/bin/nvim && rm -rf "${TMP_NVIM}"
-  """)
-  opt += neovim
-  return opt
-
-
 def _section_post_install(ctx: InstallerContext) -> str:
   config = dedent("""\
     xbps-reconfigure --force --all
@@ -147,7 +134,6 @@ def generate_chroot(
     _section_luks_key_setup(crypt_uuid, luks_pass),
     _section_grub_install(crypt_uuid, distro_name),
     _section_install_packages(ctx),
-    _section_third_party_packages(),
     _section_post_install(ctx),
   ]
   if dry_run:
