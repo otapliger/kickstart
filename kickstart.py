@@ -189,6 +189,9 @@ def _run_installation(ctx: InstallerContext) -> None:
 
 def main() -> None:
   """Main entry point for the installer."""
+  # Clear the screen
+  print("\033[2J\033[H", end="")
+
   parser = _create_argument_parser()
   args = parser.parse_args()
   config = Config.from_namespace(args)
