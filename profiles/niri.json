@@ -42,7 +42,6 @@
     ],
     "exclude": []
   },
-  "hostname": "void",
   "post_install_commands": [
     "ln -sf /etc/sv/dbus /var/service/",
     "ln -sf /etc/sv/elogind /var/service/",

@@ -12,6 +12,5 @@
     "additional": [],
     "exclude": ["fish-shell"]
   },
-  "hostname": "void",
   "post_install_commands": []
 }
