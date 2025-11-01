@@ -265,7 +265,6 @@ def get_distro_info(file_path: str = "/etc/os-release", dry_run: bool = False) -
       return name or "Linux", distro_id or "linux"
   except (FileNotFoundError, IOError) as e:
     if dry_run:
-      warning(f"Warning: Failed to read distribution info\n{reset}{e}")
       return "Linux", "linux"
     else:
       error(f"Failed to read distribution info from {file_path}: {e}")

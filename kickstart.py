@@ -5,8 +5,8 @@ import os
 import sys
 from pathlib import Path
 from typing import override
-from src.ansi_codes import green, red, reset, yellow, bold
-from src.ascii_art import void
+from src.ansi_codes import red, reset, yellow, bold
+from src.ascii_art import print_logo
 from src.steps import install
 from src.utils import error, info, load_defaults, get_distro_info
 from src.context import InstallerContext, Config
@@ -193,8 +193,8 @@ def main() -> None:
   args = parser.parse_args()
   config = Config.from_namespace(args)
 
-  print(void)
-  print(f"{green}Welcome to void.kickstart, a Void Linux installer.{reset}")
+  distro_name, distro_id = get_distro_info(dry_run=config.dry)
+  print_logo(distro_id)
 
   if config.dry:
     print(f"{yellow}{bold}DRY RUN MODE{reset} - No actual changes will be made to your system")
@@ -215,8 +215,6 @@ def main() -> None:
     print(f"\n{yellow}Use --help for valid options{reset}")
     sys.exit(1)
 
-  # Validate os-release early to catch issues before any system changes
-  distro_name, distro_id = get_distro_info(dry_run=config.dry)
   print()
 
   if not config.dry:
