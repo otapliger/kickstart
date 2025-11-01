@@ -1,0 +1,17 @@
+{
+  "name": "Minimal System",
+  "description": "Bare minimum Void Linux installation with only essential packages",
+  "version": "1.0",
+  "config": {
+    "libc": "glibc",
+    "timezone": "Europe/London",
+    "keymap": "uk",
+    "locale": "en_GB.UTF-8"
+  },
+  "packages": {
+    "additional": [],
+    "exclude": ["fish-shell"]
+  },
+  "hostname": "void",
+  "post_install_commands": []
+}

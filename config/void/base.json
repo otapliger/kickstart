@@ -1,0 +1,13 @@
+[
+  "base-devel",
+  "base-system",
+  "chrony",
+  "cryptsetup",
+  "dhcpcd",
+  "efibootmgr",
+  "grub-btrfs",
+  "grub-x86_64-efi",
+  "linux",
+  "ufw",
+  "void-repo-nonfree"
+]

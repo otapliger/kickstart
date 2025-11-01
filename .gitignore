@@ -1,0 +1,32 @@
+.python-version
+__pycache__
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+._*
+
+# Windows
+Thumbs*
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# Temporary files
+*.swp
+*.swo
+*.bak

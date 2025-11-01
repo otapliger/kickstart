@@ -1,0 +1,22 @@
+[
+  {
+    "url": "https://repo-fastly.voidlinux.org/current",
+    "region": "Global",
+    "location": "Fastly CDN"
+  },
+  {
+    "url": "https://repo-fi.voidlinux.org/current",
+    "region": "Europe",
+    "location": "Helsinki, Finland"
+  },
+  {
+    "url": "https://repo-de.voidlinux.org/current",
+    "region": "Europe",
+    "location": "Frankfurt, Germany"
+  },
+  {
+    "url": "https://mirrors.servercentral.com/voidlinux/current",
+    "region": "North America",
+    "location": "Chicago, USA"
+  }
+]
