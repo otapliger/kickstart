@@ -314,16 +314,16 @@ def main() -> None:
     try:
       ctx.profile = ProfileLoader.load(config.profile)
 
-      # Apply profile configuration overrides to base config
-      if ctx.profile.config.libc:
+      # Apply profile configuration overrides to base config (only if not explicitly set via CLI)
+      if ctx.profile.config.libc and ctx.config.libc == DEFAULTS["libc"]:
         ctx.config.libc = ctx.profile.config.libc
-      if ctx.profile.config.timezone:
+      if ctx.profile.config.timezone and ctx.config.timezone == DEFAULTS["timezone"]:
         ctx.config.timezone = ctx.profile.config.timezone
-      if ctx.profile.config.keymap:
+      if ctx.profile.config.keymap and ctx.config.keymap == DEFAULTS["keymap"]:
         ctx.config.keymap = ctx.profile.config.keymap
-      if ctx.profile.config.locale:
+      if ctx.profile.config.locale and ctx.config.locale == DEFAULTS["locale"]:
         ctx.config.locale = ctx.profile.config.locale
-      if ctx.profile.config.repository:
+      if ctx.profile.config.repository and ctx.config.repository == DEFAULTS["repository"]:
         ctx.config.repository = ctx.profile.config.repository
 
       print()
