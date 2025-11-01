@@ -126,16 +126,22 @@ def step_03_system_bootstrap(ctx: InstallerContext) -> None:
   cmd("cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys", ctx.dry)
 
   info("- installing base system")
-  path = os.path.join(os.path.dirname(__file__), "../config/void/base.json")
-  try:
-    with open(path) as f:
-      pkgs_list: list[str] = json.load(f)
-      pkgs = " ".join(pkgs_list)
-      repository = ctx.repository or DEFAULTS["repository"]
-      cmd(f"xbps-install -Sy -R '{repository}' -r /mnt {pkgs}", ctx.dry)
-  except (FileNotFoundError, json.JSONDecodeError) as e:
-    error(f"Error loading base packages: {e}")
-    sys.exit(1)
+  pkgs_list = [
+    "base-devel",
+    "base-system",
+    "chrony",
+    "cryptsetup",
+    "dhcpcd",
+    "efibootmgr",
+    "grub-btrfs",
+    "grub-x86_64-efi",
+    "linux",
+    "ufw",
+    "void-repo-nonfree",
+  ]
+  pkgs = " ".join(pkgs_list)
+  repository = ctx.repository or DEFAULTS["repository"]
+  cmd(f"xbps-install -Sy -R '{repository}' -r /mnt {pkgs}", ctx.dry)
 
 
 def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None:
