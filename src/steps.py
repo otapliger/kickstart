@@ -24,6 +24,12 @@ DEFAULTS = load_defaults()
 
 
 def step_01_settings(ctx: InstallerContext) -> None:
+  print(f"  • C library: {ctx.config.libc}")
+  print(f"  • Keymap: {ctx.config.keymap}")
+  print(f"  • Locale: {ctx.config.locale}")
+  print(f"  • Timezone: {ctx.config.timezone}")
+  print()
+
   if ctx.config.hostname:
     ctx.host = ctx.config.hostname
   elif ctx.profile and ctx.profile.hostname:
@@ -31,13 +37,6 @@ def step_01_settings(ctx: InstallerContext) -> None:
   else:
     ctx.host = set_host(ctx.distro_id)
 
-  if ctx.profile:
-    print(f"  • C library: {ctx.config.libc}")
-    print(f"  • Timezone: {ctx.config.timezone}")
-    print(f"  • Keymap: {ctx.config.keymap}")
-    print(f"  • Locale: {ctx.config.locale}")
-    print(f"  • Hostname: {ctx.host}")
-    print()
   ctx.disk = set_disk()
   ctx.luks_pass = set_luks()
 
