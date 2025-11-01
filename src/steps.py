@@ -86,6 +86,8 @@ def step_02_disk_setup(ctx: InstallerContext) -> None:
   cmd(f"mkfs.vfat -F32 -n ESP {ctx.esp}", ctx.dry)
 
   info("- setting up disk encryption")
+  # At this point we should always have a LUKS password
+  assert isinstance(ctx.luks_pass, str), "luks_pass must be set before disk setup"
   scmd(f"cryptsetup luksFormat --type luks1 --pbkdf-force-iterations 1000 {ctx.cryptroot} -d -", ctx.luks_pass, ctx.dry)
   scmd(f"cryptsetup luksOpen {ctx.cryptroot} {ctx.host} -d -", ctx.luks_pass, ctx.dry)
 
@@ -202,6 +204,9 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
   cmd("mount --rbind /run /mnt/run", ctx.dry)
   cmd("mount --rbind /dev /mnt/dev", ctx.dry)
   cmd("chroot /mnt /bin/bash -x /root/chroot.sh", ctx.dry)
+  # Ensure user credentials are present; step 01 collected them
+  assert isinstance(ctx.user_pass, str), "user_pass must be set before configuring system"
+  assert isinstance(ctx.user_name, str), "user_name must be set before configuring system"
   scmd("chroot /mnt passwd root", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry)
   scmd(f"chroot /mnt passwd {ctx.user_name}", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry)
 

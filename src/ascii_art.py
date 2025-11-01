@@ -40,7 +40,7 @@ linux: str = f"""{white}
 {yellow}Welcome to linux.kickstart, a Linux installer.{reset}"""
 
 
-def print_logo(distro_id: str) -> str:
+def print_logo(distro_id: str) -> None:
   logos = {
     "void": void,
     "arch": arch,
