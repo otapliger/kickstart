@@ -1,7 +1,5 @@
 import subprocess
 import sys
-import os
-import json
 from typing import Callable
 from src.ansi_codes import bold, yellow, reset
 from src.chroot import generate_chroot
@@ -9,6 +7,7 @@ from src.utils import (
   error,
   info,
   cmd,
+  scmd,
   write,
   set_disk,
   set_host,
@@ -94,9 +93,8 @@ def step_02_disk_setup(ctx: InstallerContext) -> None:
   cmd(f"mkfs.vfat -F32 -n ESP {ctx.esp}", ctx.dry)
 
   info("- setting up disk encryption")
-  cryptsetup = f"echo -n '{ctx.luks_pass}' | cryptsetup"
-  cmd(f"{cryptsetup} luksFormat --type luks1 --pbkdf-force-iterations 1000 {ctx.cryptroot} -d -", ctx.dry)
-  cmd(f"{cryptsetup} luksOpen {ctx.cryptroot} {ctx.host} -d -", ctx.dry)
+  scmd(f"cryptsetup luksFormat --type luks1 --pbkdf-force-iterations 1000 {ctx.cryptroot} -d -", ctx.luks_pass, ctx.dry)
+  scmd(f"cryptsetup luksOpen {ctx.cryptroot} {ctx.host} -d -", ctx.luks_pass, ctx.dry)
 
   info("- creating BTRFS filesystem")
   cmd(f"mkfs.btrfs -L {ctx.host} {ctx.root}", ctx.dry)
@@ -199,7 +197,6 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
     cmd("xbps-reconfigure -f glibc-locales -r /mnt", ctx.dry)
 
   info("- installing packages and configuring services")
-  repository = ctx.repository or DEFAULTS["repository"]
   generate_chroot(
     path="/mnt/root/chroot.sh",
     ctx=ctx,
@@ -213,8 +210,8 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
   cmd("mount --rbind /run /mnt/run", ctx.dry)
   cmd("mount --rbind /dev /mnt/dev", ctx.dry)
   cmd("chroot /mnt /bin/bash -x /root/chroot.sh", ctx.dry)
-  cmd(f"printf '%s\\n%s\\n' '{ctx.user_pass}' '{ctx.user_pass}' | chroot /mnt passwd root", ctx.dry)
-  cmd(f"printf '%s\\n%s\\n' '{ctx.user_pass}' '{ctx.user_pass}' | chroot /mnt passwd {ctx.user_name}", ctx.dry)
+  scmd("chroot /mnt passwd root", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry)
+  scmd(f"chroot /mnt passwd {ctx.user_name}", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry)
 
 
 def step_05_cleanup(ctx: InstallerContext) -> None:

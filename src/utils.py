@@ -43,6 +43,25 @@ def cmd(command: str, dry_run: bool = False) -> None:
     sys.exit(1)
 
 
+def scmd(command: str, stdin_data: str, dry_run: bool = False) -> None:
+  """Execute a command with sensitive stdin data without exposing it in process list."""
+  if dry_run:
+    info(f"{gray}[DRY RUN] {command} (with stdin data)")
+    return
+  try:
+    process = subprocess.Popen(
+      command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+    stdout, stderr = process.communicate(input=stdin_data)
+    if process.returncode != 0:
+      raise subprocess.CalledProcessError(process.returncode, command, output=stdout, stderr=stderr)
+  except subprocess.CalledProcessError as e:
+    error(f"Command '{command}' failed with error: {e}")
+    if e.stderr:
+      error(f"stderr: {e.stderr}")
+    sys.exit(1)
+
+
 def write(path: str, lines: list[str], dry_run: bool = False) -> None:
   assert isinstance(lines, list)
   if dry_run:
