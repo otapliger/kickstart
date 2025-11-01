@@ -4,7 +4,7 @@ import getpass
 import sys
 import re
 import json
-from typing import TypedDict, Tuple
+from typing import TypedDict
 from src.ansi_codes import green, red, reset, gray, yellow
 from src.validations import validate_defaults_json, validate_mirrors_json
 
@@ -229,7 +229,7 @@ def set_mirror() -> str:
       error("Invalid input. Please enter a number or press Enter for default.")
 
 
-def get_distro_info(file_path: str = "/etc/os-release", dry_run: bool = False) -> Tuple[str, str]:
+def get_distro_info(file_path: str = "/etc/os-release", dry_run: bool = False) -> tuple[str, str]:
   """
   Extract NAME and ID from os-release file.
 

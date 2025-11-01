@@ -1,7 +1,6 @@
 import os
 import subprocess
 import json
-from typing import List, Set
 from src.ansi_codes import gray, reset
 from src.utils import info, error
 from src.context import InstallerContext
@@ -54,19 +53,19 @@ def _section_grub_install(crypt_uuid: str, distro_name: str) -> str:
   """)
 
 
-def _get_package_list(ctx: InstallerContext) -> List[str]:
+def _get_package_list(ctx: InstallerContext) -> list[str]:
   """Get final package list based on profile configuration."""
   # Load default packages
   pkgs_file = os.path.join(os.path.dirname(__file__), "../config/void/pkgs.json")
   try:
     with open(pkgs_file) as f:
-      default_pkgs: List[str] = json.load(f)
+      default_pkgs: list[str] = json.load(f)
   except (FileNotFoundError, json.JSONDecodeError) as e:
     error(f"Error loading packages from pkgs.json: {e}")
     return []
 
   # Start with default packages
-  final_pkgs: Set[str] = set(default_pkgs)
+  final_pkgs: set[str] = set(default_pkgs)
 
   # Apply profile package configuration if available
   if ctx.profile and ctx.profile.packages:

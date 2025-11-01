@@ -1,7 +1,6 @@
 from __future__ import annotations
 from argparse import Namespace
 from dataclasses import dataclass
-from typing import Optional
 from src.profiles import InstallationProfile
 
 
@@ -15,8 +14,8 @@ class Config:
   timezone: str
   keymap: str
   locale: str
-  hostname: Optional[str] = None
-  profile: Optional[str] = None
+  hostname: str | None = None
+  profile: str | None = None
 
   @classmethod
   def from_namespace(cls, args: Namespace) -> Config:
@@ -44,7 +43,7 @@ class InstallerContext:
 
   def __init__(self, config: Config) -> None:
     self.config: Config = config
-    self.profile: Optional[InstallationProfile] = None
+    self.profile: InstallationProfile | None = None
 
     # Distribution information
     self.distro_name: str = "Linux"
