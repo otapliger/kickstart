@@ -48,8 +48,7 @@ Safety checklist:
 
 Configuration lives in `config/void/`:
 - `defaults.json` – baseline locale, timezone, libc, keymap, repository, NTP servers
-- `pkgs.json` – extended curated packages (GUI, dev tools, multimedia, productivity)
-- `base.json` – minimal base package set
+- `pkgs.json` – essential development and productivity tools
 - `mirrors.json` – mirror metadata
 
 CLI options (`kickstart.py`):
