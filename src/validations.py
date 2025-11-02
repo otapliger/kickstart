@@ -12,6 +12,23 @@ from typing import Any
 from src.types import MirrorData
 
 
+# =============================================================================
+# Type Guards
+# =============================================================================
+# Functions that check types and return boolean results for type narrowing
+
+
+def is_string_list(value: object) -> bool:
+  """Type guard to check if value is a list of strings."""
+  return isinstance(value, list) and all(isinstance(item, str) for item in value)
+
+
+# =============================================================================
+# Validation Functions
+# =============================================================================
+# Functions that validate data and return boolean or list of issues
+
+
 def validate_url(url: str) -> bool:
   """Validate that a URL is properly formatted."""
   if not url:

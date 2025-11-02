@@ -12,9 +12,10 @@ import urllib.error
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import cast
 from src.ansi_codes import green, yellow, reset
 from src.utils import error, info
-from src.validations import validate_profile_json
+from src.validations import validate_profile_json, is_string_list
 
 
 @dataclass
@@ -86,13 +87,18 @@ class InstallationProfile:
     additional_packages = packages_data.get("additional", [])
     exclude_packages = packages_data.get("exclude", [])
 
+    # Type-checked package lists
+    additional_list: list[str] = []
+    if is_string_list(additional_packages):
+      additional_list = cast(list[str], additional_packages)
+
+    exclude_list: list[str] = []
+    if is_string_list(exclude_packages):
+      exclude_list = cast(list[str], exclude_packages)
+
     packages = PackageSelection(
-      additional=additional_packages
-      if isinstance(additional_packages, list) and all(isinstance(p, str) for p in additional_packages)
-      else [],
-      exclude=exclude_packages
-      if isinstance(exclude_packages, list) and all(isinstance(p, str) for p in exclude_packages)
-      else [],
+      additional=additional_list,
+      exclude=exclude_list,
     )
 
     # Get version
@@ -105,9 +111,9 @@ class InstallationProfile:
 
     # Get post-install commands
     commands_raw = data.get("post_install_commands", [])
-    post_install_commands = (
-      commands_raw if isinstance(commands_raw, list) and all(isinstance(c, str) for c in commands_raw) else []
-    )
+    post_install_commands: list[str] = []
+    if is_string_list(commands_raw):
+      post_install_commands = cast(list[str], commands_raw)
 
     return cls(
       name=name,
