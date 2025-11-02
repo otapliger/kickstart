@@ -13,11 +13,6 @@ def info(message: str) -> None:
   print(f"{green}{message}{reset}")
 
 
-def warning(message: str) -> None:
-  print()
-  print(f"{yellow}{message}{reset}")
-
-
 def error(message: str) -> None:
   print()
   print(f"{red}{message}{reset}")

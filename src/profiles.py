@@ -284,19 +284,3 @@ class ProfileLoader:
     except Exception as e:
       error(f"Failed to load profile from '{source}': {e}")
       raise
-
-
-def create_example_profile() -> dict[str, object]:
-  """Create an example profile for documentation/testing."""
-  return {
-    "name": "Minimal System",
-    "description": "Bare minimum Void Linux installation with only essential packages",
-    "version": "1.0",
-    "config": {"libc": "glibc", "timezone": "Europe/London", "keymap": "uk", "locale": "en_GB.UTF-8"},
-    "packages": {
-      "additional": ["neovim", "lua"],
-      "exclude": ["helix"],
-    },
-    "hostname": "void",
-    "post_install_commands": [],
-  }
