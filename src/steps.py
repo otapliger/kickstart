@@ -40,12 +40,9 @@ def step_01_settings(ctx: InstallerContext) -> None:
 
   ctx.disk = set_disk()
   ctx.luks_pass = set_luks()
-
-  # User creation
   ctx.user_name = set_user()
   ctx.user_pass = set_pass(ctx.user_name)
 
-  # Repository selection with profile override
   profile_repo = ctx.profile.config.repository if ctx.profile else None
   if profile_repo:
     ctx.repository = profile_repo
@@ -58,7 +55,6 @@ def step_01_settings(ctx: InstallerContext) -> None:
   else:
     ctx.repository = set_mirror(ctx.distro_id)
 
-  # Confirmation prompt
   warning = f"{bold}{yellow}WARNING:{reset}"
   response = input(f"{warning} All data on {ctx.disk} will be erased. Are you sure you want to continue? [y/N]: ")
   if response.lower() not in ("y", "yes"):

@@ -5,6 +5,7 @@ This module contains all custom type definitions used throughout the application
 """
 
 from typing import TypedDict
+from enum import Enum
 
 
 class MirrorData(TypedDict):
@@ -24,3 +25,12 @@ class DefaultsConfig(TypedDict):
   keymap: str
   libc: str
   ntp: list[str]
+
+
+class GPUVendor(Enum):
+  """Enumeration of GPU vendors."""
+
+  INTEL = "intel"
+  AMD = "amd"
+  NVIDIA = "nvidia"
+  UNKNOWN = "unknown"

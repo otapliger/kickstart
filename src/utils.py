@@ -6,8 +6,7 @@ import re
 import json
 from src.ansi_codes import green, red, reset, gray, yellow
 from src.validations import validate_defaults_json, validate_mirrors_json
-from src.types import DefaultsConfig
-from enum import Enum
+from src.types import DefaultsConfig, GPUVendor
 
 
 def info(message: str) -> None:
@@ -299,15 +298,6 @@ def get_distro_info(file_path: str = "/etc/os-release") -> tuple[str, str]:
   except (FileNotFoundError, IOError) as e:
     error(f"Failed to read distribution info from {file_path}: {e}")
     sys.exit(1)
-
-
-class GPUVendor(Enum):
-  """Enumeration of GPU vendors."""
-
-  INTEL = "intel"
-  AMD = "amd"
-  NVIDIA = "nvidia"
-  UNKNOWN = "unknown"
 
 
 def detect_gpu_vendors() -> list[GPUVendor]:
