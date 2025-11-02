@@ -192,10 +192,10 @@ def validate_config_json(data: Any, distro_id: str) -> None:
     raise KeyError(f"Distro '{distro_id}' not found in packages section")
 
   # Validate defaults structure
-  validate_defaults_json(data["defaults"][distro_id])
+  _ = validate_defaults_json(data["defaults"][distro_id])
 
   # Validate mirrors structure
-  validate_mirrors_json(data["mirrors"][distro_id])
+  _ = validate_mirrors_json(data["mirrors"][distro_id])
 
   # Validate packages structure
   if not isinstance(data["packages"][distro_id], list):
