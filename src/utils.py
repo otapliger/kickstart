@@ -60,7 +60,7 @@ def scmd(command: str, stdin_data: str, dry_run: bool = False) -> None:
     sys.exit(1)
 
 
-def write(path: str, lines: list[str], dry_run: bool = False) -> None:
+def write(lines: list[str], path: str, dry_run: bool = False) -> None:
   assert isinstance(lines, list)
   if dry_run:
     info(f"{gray}[DRY RUN] Writing to {path}:")

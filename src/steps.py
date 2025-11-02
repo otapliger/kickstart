@@ -31,8 +31,10 @@ def step_01_settings(ctx: InstallerContext) -> None:
 
   if ctx.config.hostname:
     ctx.host = ctx.config.hostname
+
   elif ctx.profile and ctx.profile.hostname:
     ctx.host = ctx.profile.hostname
+
   else:
     ctx.host = set_host(ctx.distro_id)
 
@@ -48,9 +50,11 @@ def step_01_settings(ctx: InstallerContext) -> None:
   if profile_repo:
     ctx.repository = profile_repo
     print(f"Using repository from profile: {ctx.repository}")
+
   elif ctx.config.repository != DEFAULTS["repository"]:
     ctx.repository = ctx.config.repository
     print(f"Using repository from command line: {ctx.repository}")
+
   else:
     ctx.repository = set_mirror(ctx.distro_id)
 
@@ -60,6 +64,7 @@ def step_01_settings(ctx: InstallerContext) -> None:
   if response.lower() not in ("y", "yes"):
     error("Installation aborted. No changes were made to the system.")
     sys.exit(0)
+
   print()
 
   ctx.cryptroot = "/dev/disk/by-partlabel/ENCRYPTED"
@@ -130,6 +135,7 @@ def step_03_system_bootstrap(ctx: InstallerContext) -> None:
     "linux",
     "ufw",
   ]
+
   pkgs = " ".join(pkgs_list)
   defaults = load_defaults(ctx.distro_id)
   repository = ctx.repository or defaults["repository"]
@@ -141,18 +147,19 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
   if ctx.dry:
     efi_uuid = "DRY-RUN-EFI-UUID"
     root_uuid = "DRY-RUN-ROOT-UUID"
+
   else:
     blkid = "blkid --match-tag UUID --output value"
-    efi_result = subprocess.run(
+
+    efi_uuid = subprocess.run(
       f"{blkid} /dev/disk/by-partlabel/ESP", check=True, shell=True, capture_output=True, text=True
-    )
-    efi_uuid = efi_result.stdout.strip()
-    root_result = subprocess.run(
+    ).stdout.strip()
+
+    root_uuid = subprocess.run(
       f"{blkid} /dev/mapper/{ctx.host}", check=True, shell=True, capture_output=True, text=True
-    )
-    root_uuid = root_result.stdout.strip()
+    ).stdout.strip()
+
   write(
-    "/mnt/etc/fstab",
     [
       f"UUID={root_uuid} / btrfs compress=zstd,noatime,subvol=@ 0 0",
       f"UUID={root_uuid} /.snapshots btrfs compress=zstd,noatime,subvol=@snapshots 0 0",
@@ -162,10 +169,11 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
       f"UUID={efi_uuid} /boot/efi vfat defaults,noatime 0 2",
       "tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0",
     ],
+    "/mnt/etc/fstab",
     ctx.dry,
   )
+
   write(
-    "/mnt/etc/sudoers",
     [
       'Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"',
       'Defaults env_keep += "SUDO_EDITOR EDITOR VISUAL"',
@@ -173,22 +181,28 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
       "%wheel ALL=(ALL:ALL) ALL",
       "@includedir /etc/sudoers.d",
     ],
+    "/mnt/etc/sudoers",
     ctx.dry,
   )
-  write("/mnt/etc/hostname", [f"{ctx.host}"], ctx.dry)
-  write("/mnt/etc/hosts", [f"127.0.0.1 localhost {ctx.host}", "::1 localhost"], ctx.dry)
+
   defaults = load_defaults(ctx.distro_id)
-  write("/mnt/etc/ntpd.conf", [f"server {str(server)}" for server in defaults["ntp"]], ctx.dry)
+
+  write([f"{ctx.host}"], "/mnt/etc/hostname", ctx.dry)
+  write([f"127.0.0.1 localhost {ctx.host}", "::1 localhost"], "/mnt/etc/hosts", ctx.dry)
+  write([f"server {str(server)}" for server in defaults["ntp"]], "/mnt/etc/ntpd.conf", ctx.dry)
+
   write(
-    "/mnt/etc/locale.conf", [f"export {var}={ctx.config.locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]], ctx.dry
+    [f"export {var}={ctx.config.locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]], "/mnt/etc/locale.conf", ctx.dry
   )
+
   write(
-    "/mnt/etc/rc.conf",
     [f'TIMEZONE="{ctx.config.timezone}"', 'HARDWARECLOCK="UTC"', f'KEYMAP="{ctx.config.keymap}"'],
+    "/mnt/etc/rc.conf",
     ctx.dry,
   )
+
   if ctx.config.libc == "glibc":
-    write("/mnt/etc/default/libc-locales", [f"{ctx.config.locale}"], ctx.dry)
+    write([f"{ctx.config.locale}"], "/mnt/etc/default/libc-locales", ctx.dry)
     cmd("xbps-reconfigure -f glibc-locales -r /mnt", ctx.dry)
 
   info("- installing packages and configuring services")
@@ -199,6 +213,7 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
     distro_name=ctx.distro_name,
     dry_run=ctx.dry,
   )
+
   cmd("cp /etc/resolv.conf /mnt/etc", ctx.dry)
   cmd("mount --types sysfs none /mnt/sys", ctx.dry)
   cmd("mount --types proc none /mnt/proc", ctx.dry)
@@ -216,6 +231,7 @@ def step_05_cleanup(ctx: InstallerContext) -> None:
   info("- finalizing installation")
   cmd("rm -rf /mnt/root/chroot.sh", ctx.dry)
   cmd("umount --recursive /mnt", ctx.dry)
+
   print()
   info("Installation completed. You can now reboot your system.")
 
