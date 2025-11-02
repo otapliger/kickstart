@@ -53,41 +53,29 @@ class InstallationProfile:
   @classmethod
   def from_dict(cls, data: dict[str, object]) -> InstallationProfile:
     """Create profile from dictionary (loaded JSON)."""
-    # Validate required fields
-    if "name" not in data:
-      raise ValueError("Profile must have a 'name' field")
+    required_fields = ["name", "description", "distro"]
 
-    if "description" not in data:
-      raise ValueError("Profile must have a 'description' field")
+    if missing := [k for k in required_fields if k not in data]:
+      raise ValueError(f"Profile must have {', '.join(repr(k) for k in missing)} field(s)")
 
-    if "distro" not in data:
-      raise ValueError("Profile must have a 'distro' field")
+    # Extract and validate types
+    name, description, distro = data["name"], data["description"], data["distro"]
 
-    name = data["name"]
-    description = data["description"]
-    distro = data["distro"]
+    if not all(isinstance(v, str) for v in [name, description, distro]):
+      invalid = [
+        k for k, v in [("name", name), ("description", description), ("distro", distro)] if not isinstance(v, str)
+      ]
+      raise ValueError(f"Profile fields {', '.join(repr(k) for k in invalid)} must be strings")
 
-    if not isinstance(name, str):
-      raise ValueError("Profile 'name' must be a string")
+    # Cast to str after validation
+    name, description, distro = str(name), str(description), str(distro)
 
-    if not isinstance(description, str):
-      raise ValueError("Profile 'description' must be a string")
-
-    if not isinstance(distro, str):
-      raise ValueError("Profile 'distro' must be a string")
-
-    # Create config overrides
     config_data = data.get("config", {})
-    if not isinstance(config_data, dict):
-      config_data = {}
+    config_data = config_data if isinstance(config_data, dict) else {}
+    config_fields = ["libc", "timezone", "keymap", "locale", "repository"]
+    config_values = {k: config_data.get(k) if isinstance(config_data.get(k), str) else None for k in config_fields}
 
-    config = ProfileConfig(
-      libc=config_data.get("libc") if isinstance(config_data.get("libc"), str) else None,
-      timezone=config_data.get("timezone") if isinstance(config_data.get("timezone"), str) else None,
-      keymap=config_data.get("keymap") if isinstance(config_data.get("keymap"), str) else None,
-      locale=config_data.get("locale") if isinstance(config_data.get("locale"), str) else None,
-      repository=config_data.get("repository") if isinstance(config_data.get("repository"), str) else None,
-    )
+    config = ProfileConfig(**config_values)
 
     # Create package selection
     packages_data = data.get("packages", {})
@@ -97,33 +85,16 @@ class InstallationProfile:
     additional_packages = packages_data.get("additional", [])
     exclude_packages = packages_data.get("exclude", [])
 
-    # Type-checked package lists
-    additional_list: list[str] = []
-    if is_string_list(additional_packages):
-      additional_list = cast(list[str], additional_packages)
-
-    exclude_list: list[str] = []
-    if is_string_list(exclude_packages):
-      exclude_list = cast(list[str], exclude_packages)
-
     packages = PackageSelection(
-      additional=additional_list,
-      exclude=exclude_list,
+      additional=cast(list[str], additional_packages) if is_string_list(additional_packages) else [],
+      exclude=cast(list[str], exclude_packages) if is_string_list(exclude_packages) else [],
     )
 
-    # Get version
-    version_raw = data.get("version", "1.0")
-    version = str(version_raw) if version_raw is not None else "1.0"
-
-    # Get hostname
-    hostname_raw = data.get("hostname")
-    hostname = hostname_raw if isinstance(hostname_raw, str) else None
-
-    # Get post-install commands
-    commands_raw = data.get("post_install_commands", [])
-    post_install_commands: list[str] = []
-    if is_string_list(commands_raw):
-      post_install_commands = cast(list[str], commands_raw)
+    version = str(version_raw) if (version_raw := data.get("version", "1.0")) is not None else "1.0"
+    hostname = hostname_raw if isinstance(hostname_raw := data.get("hostname"), str) else None
+    post_install_commands = (
+      cast(list[str], commands_raw) if is_string_list(commands_raw := data.get("post_install_commands", [])) else []
+    )
 
     return cls(
       name=name,
@@ -145,45 +116,42 @@ class InstallationProfile:
       "version": self.version,
     }
 
-    # Add config if any values are set
-    config_dict: dict[str, str] = {}
-    if self.config.libc is not None:
-      config_dict["libc"] = self.config.libc
+    # Build config dict using comprehension, filtering out None values
+    config_dict = {
+      k: v
+      for k, v in {
+        "libc": self.config.libc,
+        "timezone": self.config.timezone,
+        "keymap": self.config.keymap,
+        "locale": self.config.locale,
+        "repository": self.config.repository,
+      }.items()
+      if v is not None
+    }
 
-    if self.config.timezone is not None:
-      config_dict["timezone"] = self.config.timezone
+    # Build packages dict using comprehension, filtering out empties
+    packages_dict = {
+      k: v
+      for k, v in {
+        "additional": self.packages.additional,
+        "exclude": self.packages.exclude,
+      }.items()
+      if v
+    }
 
-    if self.config.keymap is not None:
-      config_dict["keymap"] = self.config.keymap
+    # Build optional fields dict, filtering out empties
+    optional_fields = {
+      k: v
+      for k, v in {
+        "config": config_dict,
+        "packages": packages_dict,
+        "hostname": self.hostname,
+        "post_install_commands": self.post_install_commands,
+      }.items()
+      if v
+    }
 
-    if self.config.locale is not None:
-      config_dict["locale"] = self.config.locale
-
-    if self.config.repository is not None:
-      config_dict["repository"] = self.config.repository
-
-    if config_dict:
-      result["config"] = config_dict
-
-    # Add packages if any are specified
-    packages_dict: dict[str, list[str]] = {}
-    if self.packages.additional:
-      packages_dict["additional"] = self.packages.additional
-
-    if self.packages.exclude:
-      packages_dict["exclude"] = self.packages.exclude
-
-    if packages_dict:
-      result["packages"] = packages_dict
-
-    # Add optional fields
-    if self.hostname is not None:
-      result["hostname"] = self.hostname
-
-    if self.post_install_commands:
-      result["post_install_commands"] = self.post_install_commands
-
-    return result
+    return {**result, **optional_fields}
 
 
 class ProfileLoader:
@@ -195,7 +163,6 @@ class ProfileLoader:
     try:
       info(f"Loading profile from {url}")
 
-      # Create request with reasonable timeout and user agent
       req = urllib.request.Request(
         url,
         headers={
@@ -216,7 +183,6 @@ class ProfileLoader:
           print(f"{yellow}Warning: Server returned Content-Type '{content_type}', expected JSON{reset}")
 
         parsed_data = json.loads(response.read().decode("utf-8"))
-
         if not isinstance(parsed_data, dict):
           raise ValueError("Profile JSON must be an object")
 
@@ -240,7 +206,6 @@ class ProfileLoader:
 
       with open(path, "r", encoding="utf-8") as f:
         parsed_data = json.load(f)
-
         if not isinstance(parsed_data, dict):
           raise ValueError("Profile JSON must be an object")
 
@@ -273,11 +238,9 @@ class ProfileLoader:
       else:
         data = cls._load_from_file(source)
 
-      # Perform automatic validation - only show output if validation fails
       validation_issues = validate_profile_json(data)
       if validation_issues:
         error(f"Profile validation failed for '{source}':")
-
         for issue in validation_issues:
           print(f"  • {issue}")
 

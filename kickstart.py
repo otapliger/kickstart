@@ -47,7 +47,6 @@ def _check_system_requirements() -> None:
     error("Root privileges are required. Please re-run the script as root.")
     sys.exit(2)
 
-  # Check if /dev exists (basic sanity check)
   if not Path("/dev").exists():
     error("System appears to be in an invalid state - /dev directory not found.")
     sys.exit(3)
@@ -75,9 +74,8 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
       Examples:
         %(prog)s --dry                                      # Preview installation steps
         %(prog)s --libc musl --keymap colemak               # Custom configuration
-        %(prog)s -r https://mirrors.example.com/void        # Different repository
-        %(prog)s --hostname voidlinux                       # Set custom hostname
         %(prog)s --profile ./profiles/minimal.json          # Use local profile
+        %(prog)s -r https://mirrors.example.com/void        # Different repository
 
       For more information, visit: https://github.com/otapliger/kickstart
     """),
@@ -90,6 +88,7 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
     help="preview installation steps without executing commands or writing files",
     dest="dry",
   )
+
   _ = parser.add_argument(
     "-p",
     "--profile",
@@ -107,6 +106,7 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
     help="C library implementation (glibc or musl) [default: %(default)s]",
     dest="libc",
   )
+
   _ = parser.add_argument(
     "-r",
     "--repository",
@@ -116,6 +116,7 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
     help="override interactive mirror selection with specific repository URL [default: %(default)s]",
     dest="repository",
   )
+
   _ = parser.add_argument(
     "-t",
     "--timezone",
@@ -125,6 +126,7 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
     help="system timezone in Region/City format [default: %(default)s]",
     dest="timezone",
   )
+
   _ = parser.add_argument(
     "-k",
     "--keymap",
@@ -134,6 +136,7 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
     help="keyboard layout for the system [default: %(default)s]",
     dest="keymap",
   )
+
   _ = parser.add_argument(
     "--locale",
     metavar="LOCALE",
@@ -142,6 +145,7 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
     help="system locale (e.g., en_US, en_US.UTF-8, C, POSIX) [default: %(default)s]",
     dest="locale",
   )
+
   _ = parser.add_argument(
     "--hostname",
     metavar="HOSTNAME",
@@ -149,6 +153,7 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
     help="system hostname",
     dest="hostname",
   )
+
   _ = parser.add_argument("--version", action="version", version="kickstart 0.1.0")
 
   return parser
@@ -173,14 +178,9 @@ def _run_installation(ctx: InstallerContext) -> None:
   total_steps = len(install)
 
   for i, step in enumerate(install, 1):
-    step_name = step.__name__.replace("step_", "").replace("_", " ").title()
-    # Remove leading numbers and spaces to avoid duplication with progress counter
-    step_name = step_name.lstrip("0123456789 ")
+    step_name = step.__name__.replace("step_", "").replace("_", " ").title().lstrip("0123456789 ")
 
-    if ctx.dry:
-      info(f"[{i}/{total_steps}] {step_name}")
-    else:
-      info(f"[{i}/{total_steps}] {step_name}")
+    info(f"[{i}/{total_steps}] {step_name}")
 
     try:
       step(ctx)
@@ -215,15 +215,13 @@ def main() -> None:
 
   # Get distro info early to load correct defaults
   # If os-release doesn't exist and we're in dry mode, default to "linux"
-  if not Path("/etc/os-release").exists() and ("--dry" in sys.argv or "-d" in sys.argv):
-    distro_name, distro_id = "Linux", "linux"
-  else:
-    distro_name, distro_id = get_distro_info()
+  is_dry_mode = "--dry" in sys.argv or "-d" in sys.argv
+  distro_name, distro_id = (
+    ("Linux", "linux") if not Path("/etc/os-release").exists() and is_dry_mode else get_distro_info()
+  )
 
-  # Load defaults for the detected distro
-  DEFAULTS = load_defaults(distro_id)
-
-  parser = _create_argument_parser(DEFAULTS)
+  defaults = load_defaults(distro_id)
+  parser = _create_argument_parser(defaults)
   config = _create_context_config(parser.parse_args())
 
   print_logo(distro_id)
@@ -242,9 +240,7 @@ def main() -> None:
 
   if errors:
     error("Invalid arguments provided:")
-    for err in errors:
-      print(f"  • {err}")
-
+    print("\n".join(f"  • {err}" for err in errors))
     print(f"\n{yellow}Use --help for valid options{reset}")
     sys.exit(1)
 
@@ -252,6 +248,7 @@ def main() -> None:
 
   if not config.dry:
     _check_system_requirements()
+
   else:
     info("Skipping root and system checks in dry run mode")
 
@@ -265,30 +262,25 @@ def main() -> None:
 
       # Check if profile distro matches system distro
       if ctx.profile.distro != ctx.distro_id:
+        msg = f"Profile distro mismatch - profile requires '{ctx.profile.distro}' but system is '{ctx.distro_id}'"
         if config.dry:
-          print(
-            f"{yellow}Warning: Profile distro mismatch - profile requires '{ctx.profile.distro}' but system is '{ctx.distro_id}'{reset}"
-          )
+          print(f"{yellow}Warning: {msg}{reset}")
         else:
-          error(f"Profile distro mismatch: profile requires '{ctx.profile.distro}' but system is '{ctx.distro_id}'")
+          error(msg)
           sys.exit(1)
 
       # Apply profile configuration overrides to base config
       # (only if not explicitly set via CLI)
-      if ctx.profile.config.libc and ctx.config.libc == DEFAULTS["libc"]:
-        ctx.config.libc = ctx.profile.config.libc
+      config_fields = ["libc", "timezone", "keymap", "locale", "repository"]
 
-      if ctx.profile.config.timezone and ctx.config.timezone == DEFAULTS["timezone"]:
-        ctx.config.timezone = ctx.profile.config.timezone
-
-      if ctx.profile.config.keymap and ctx.config.keymap == DEFAULTS["keymap"]:
-        ctx.config.keymap = ctx.profile.config.keymap
-
-      if ctx.profile.config.locale and ctx.config.locale == DEFAULTS["locale"]:
-        ctx.config.locale = ctx.profile.config.locale
-
-      if ctx.profile.config.repository and ctx.config.repository == DEFAULTS["repository"]:
-        ctx.config.repository = ctx.profile.config.repository
+      # fmt: off
+      for field in (
+        f for f in config_fields
+        if getattr(ctx.profile.config, f)
+        and getattr(ctx.config, f) == defaults[f]
+      ):
+        setattr(ctx.config, field, getattr(ctx.profile.config, field))
+      # fmt: on
 
     except Exception as e:
       error(f"Failed to load profile: {e}")

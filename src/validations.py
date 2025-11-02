@@ -81,17 +81,17 @@ def validate_hostname(hostname: str) -> bool:
     return False
 
   labels = hostname.split(".")
-  for label in labels:
-    if not label or len(label) > 63:
-      return False
 
-    if not (label[0].isalnum() and label[-1].isalnum()):
-      return False
+  def is_valid_label(label: str) -> bool:
+    return (
+      bool(label)
+      and len(label) <= 63
+      and label[0].isalnum()
+      and label[-1].isalnum()
+      and all(c.isalnum() or c == "-" for c in label)
+    )
 
-    if not all(c.isalnum() or c == "-" for c in label):
-      return False
-
-  return True
+  return all(is_valid_label(label) for label in labels)
 
 
 def validate_profile(source: str) -> bool:
@@ -109,17 +109,13 @@ def validate_profile_json(data: dict[str, object]) -> list[str]:
 
   Returns empty list if valid, list of error messages if invalid.
   """
-  issues: list[str] = []
+  required_validators = [
+    (lambda: isinstance(data.get("name"), str), "Profile must have a 'name' field as string"),
+    (lambda: isinstance(data.get("description"), str), "Profile must have a 'description' field as string"),
+    (lambda: isinstance(data.get("distro"), str), "Profile must have a 'distro' field as string"),
+  ]
 
-  # Required fields
-  if not isinstance(data.get("name"), str):
-    issues.append("Profile must have a 'name' field as string")
-
-  if not isinstance(data.get("description"), str):
-    issues.append("Profile must have a 'description' field as string")
-
-  if not isinstance(data.get("distro"), str):
-    issues.append("Profile must have a 'distro' field as string")
+  issues = [msg for validator, msg in required_validators if not validator()]
 
   # Optional but validated fields
   config = data.get("config", {})
@@ -130,13 +126,11 @@ def validate_profile_json(data: dict[str, object]) -> list[str]:
   if packages is not None and not isinstance(packages, dict):
     issues.append("'packages' field must be an object")
 
-  # Validate config values if present
   if isinstance(config, dict):
     libc = config.get("libc")
     if libc is not None and libc not in ["glibc", "musl"]:
       issues.append("config.libc must be 'glibc' or 'musl'")
 
-  # Validate package structure if present
   if isinstance(packages, dict):
     for field in ["additional", "exclude"]:
       value = packages.get(field)
@@ -194,24 +188,18 @@ def validate_cli_arguments(
 
   Returns empty list if all arguments are valid, list of error messages otherwise.
   """
-  errors: list[str] = []
+  # Define validators as (condition, error_message) tuples
+  validators = [
+    (validate_url(repository), f"Invalid repository URL: {repository}"),
+    (validate_timezone(timezone), f"Invalid timezone: {timezone} (expected format: Region/City)"),
+    (validate_locale(locale), f"Invalid locale: {locale} (expected format: language[_COUNTRY][.encoding][@modifier])"),
+    (validate_libc(libc), f"Invalid libc: {libc} (must be 'glibc' or 'musl')"),
+  ]
 
-  if not validate_url(repository):
-    errors.append(f"Invalid repository URL: {repository}")
+  if hostname:
+    validators.append((validate_hostname(hostname), f"Invalid hostname: {hostname} (must follow RFC 1123 format)"))
 
-  if not validate_timezone(timezone):
-    errors.append(f"Invalid timezone: {timezone} (expected format: Region/City)")
+  if profile:
+    validators.append((validate_profile(profile), f"Profile file not found: {profile}"))
 
-  if not validate_locale(locale):
-    errors.append(f"Invalid locale: {locale} (expected format: language[_COUNTRY][.encoding][@modifier])")
-
-  if not validate_libc(libc):
-    errors.append(f"Invalid libc: {libc} (must be 'glibc' or 'musl')")
-
-  if hostname and not validate_hostname(hostname):
-    errors.append(f"Invalid hostname: {hostname} (must follow RFC 1123 format)")
-
-  if profile and not validate_profile(profile):
-    errors.append(f"Profile file not found: {profile}")
-
-  return errors
+  return [msg for valid, msg in validators if not valid]

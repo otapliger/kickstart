@@ -46,4 +46,4 @@ def print_logo(distro_id: str) -> None:
     "arch": arch,
     "linux": linux,
   }
-  print(logos.get(distro_id))
+  print(logos.get(distro_id, linux))

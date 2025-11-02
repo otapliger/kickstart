@@ -2,7 +2,7 @@ import os
 import subprocess
 import json
 from src.ansi_codes import gray, reset
-from src.utils import info, error, detect_gpu_vendors, get_gpu_packages, print_detected_gpus
+from src.utils import info, error, detect_gpu_vendors, get_gpu_packages
 from src.context import InstallerContext
 from textwrap import dedent
 
@@ -67,24 +67,16 @@ def _get_package_list(ctx: InstallerContext) -> list[str]:
     error(f"Error loading packages from config.json: {e}")
     return []
 
-  # Start with default packages
-  final_pkgs: set[str] = set(default_pkgs)
+  gpu_packages = get_gpu_packages(ctx.distro_id, detect_gpu_vendors())
+  profile_pkgs = ctx.profile.packages if ctx.profile else None
 
-  info("Detecting GPU hardware...")
-  gpu_vendors = detect_gpu_vendors()
-  print_detected_gpus(gpu_vendors)
-  gpu_packages = get_gpu_packages(ctx.distro_id, gpu_vendors)
-  if gpu_packages:
-    info(f"Adding GPU packages: {', '.join(gpu_packages)}")
-    final_pkgs.update(gpu_packages)
-
-  # Apply profile package configuration if available
-  if ctx.profile and ctx.profile.packages:
-    profile_pkgs = ctx.profile.packages
-    if profile_pkgs.additional:
-      final_pkgs.update(profile_pkgs.additional)
-    if profile_pkgs.exclude:
-      final_pkgs.difference_update(profile_pkgs.exclude)
+  # fmt: off
+  final_pkgs = (
+    set(default_pkgs)
+    | set(gpu_packages)
+    | (set(profile_pkgs.additional) if profile_pkgs else set())
+  ) - (set(profile_pkgs.exclude) if profile_pkgs else set())
+  # fmt: on
 
   return sorted(final_pkgs)
 
@@ -101,30 +93,29 @@ def _section_install_packages(ctx: InstallerContext) -> str:
 
 
 def _section_post_install(ctx: InstallerContext) -> str:
-  config = dedent("""\
-    xbps-reconfigure --force --all
-  """)
-  services = dedent("""\
-    ln -srf /etc/sv/{chronyd,dhcpcd,grub-btrfs,ufw} /var/service/
-  """)
-  firewall = dedent("""\
-    ufw default deny incoming
-    ufw default allow outgoing
-  """)
-  users = dedent(f"""\
-    chsh --shell /bin/bash root
-    useradd --create-home --groups wheel,users,input,audio,video,network --shell /bin/fish {ctx.user_name}
-  """)
-  config += services
-  config += firewall
-  config += users
+  sections = [
+    dedent("""\
+      xbps-reconfigure --force --all
+    """),
+    dedent("""\
+      ln -srf /etc/sv/{chronyd,dhcpcd,grub-btrfs,ufw} /var/service/
+    """),
+    dedent("""\
+      ufw default deny incoming
+      ufw default allow outgoing
+    """),
+    dedent(f"""\
+      chsh --shell /bin/bash root
+      useradd --create-home --groups wheel,users,input,audio,video,network --shell /bin/fish {ctx.user_name}
+    """),
+  ]
 
   # Add profile-specific post-install commands
   if ctx.profile and ctx.profile.post_install_commands:
     profile_commands = "\n".join(ctx.profile.post_install_commands)
-    config += f"\n{profile_commands}\n"
+    sections.append(f"\n{profile_commands}\n")
 
-  return config
+  return "".join(sections)
 
 
 def generate_chroot(
@@ -134,14 +125,17 @@ def generate_chroot(
   distro_name: str,
   dry_run: bool = False,
 ) -> None:
-  if dry_run:
-    crypt_uuid = "MOCK-CRYPT-UUID"
-  else:
-    blkid = "blkid --match-tag UUID --output value"
-    result = subprocess.run(
-      f"{blkid} /dev/disk/by-partlabel/ENCRYPTED", check=True, shell=True, capture_output=True, text=True
-    )
-    crypt_uuid = result.stdout.strip()
+  crypt_uuid = (
+    "MOCK-CRYPT-UUID"
+    if dry_run
+    else subprocess.run(
+      "blkid --match-tag UUID --output value /dev/disk/by-partlabel/ENCRYPTED",
+      check=True,
+      shell=True,
+      capture_output=True,
+      text=True,
+    ).stdout.strip()
+  )
   parts: list[str] = [
     _section_header(),
     _section_luks_key_setup(crypt_uuid, luks_pass),

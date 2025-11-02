@@ -4,6 +4,7 @@ import getpass
 import sys
 import re
 import json
+from operator import itemgetter
 from src.ansi_codes import green, red, reset, gray, yellow
 from src.validations import validate_defaults_json, validate_mirrors_json
 from src.types import DefaultsConfig, GPUVendor
@@ -59,10 +60,8 @@ def write(lines: list[str], path: str, dry_run: bool = False) -> None:
   assert isinstance(lines, list)
   if dry_run:
     info(f"{gray}[DRY RUN] Writing to {path}:")
-
     for line in lines:
       print(f"{gray}  {line}{reset}")
-
     return
 
   open(path, "w").close()
@@ -174,12 +173,11 @@ def load_defaults(distro_id: str = "void") -> DefaultsConfig:
 
       defaults_data = config_data["defaults"][distro_id]
       data = validate_defaults_json(defaults_data)
+
+      # Use dictionary comprehension to convert values to strings
+      # except ntp list
       return DefaultsConfig(
-        repository=str(data["repository"]),
-        timezone=str(data["timezone"]),
-        locale=str(data["locale"]),
-        keymap=str(data["keymap"]),
-        libc=str(data["libc"]),
+        **{k: str(v) for k, v in data.items() if k != "ntp"},
         ntp=[str(server) for server in data["ntp"]],
       )
 
@@ -195,6 +193,7 @@ def load_defaults(distro_id: str = "void") -> DefaultsConfig:
 def load_mirrors(distro_id: str = "void") -> list[tuple[str, str, str]]:
   """Load mirrors from config.json file for specified distro and return as list of (url, region, location) tuples."""
   config_file = os.path.join(os.path.dirname(__file__), "../config.json")
+
   try:
     with open(config_file, "r") as f:
       config_data = json.load(f)
@@ -204,7 +203,8 @@ def load_mirrors(distro_id: str = "void") -> list[tuple[str, str, str]]:
 
       mirrors_data = config_data["mirrors"][distro_id]
       data = validate_mirrors_json(mirrors_data)
-      mirrors = [(mirror["url"], mirror["region"], mirror["location"]) for mirror in data]
+      extract_mirror = itemgetter("url", "region", "location")
+      mirrors = list(map(extract_mirror, data))
 
   except (FileNotFoundError, json.JSONDecodeError) as e:
     error(f"Error loading config.json: {e}")
@@ -226,6 +226,7 @@ def set_mirror(distro_id: str = "void") -> str:
     return str(default_repository)
 
   print("Available mirrors:")
+
   for i, (url, region, location) in enumerate(mirrors, start=1):
     if url == default_repository:
       print(f"  {i}. {region} - {location} (default)")
@@ -307,8 +308,6 @@ def detect_gpu_vendors() -> list[GPUVendor]:
   Returns:
       List of GPUVendor enums representing detected GPUs
   """
-  vendors: list[GPUVendor] = []
-
   try:
     result = subprocess.run(["lspci", "-nn"], capture_output=True, text=True, check=False)
 
@@ -318,24 +317,21 @@ def detect_gpu_vendors() -> list[GPUVendor]:
 
     output = result.stdout.lower()
 
-    for line in output.splitlines():
-      if "vga compatible controller" in line or "3d controller" in line or "display controller" in line:
-        if "intel" in line:
-          if GPUVendor.INTEL not in vendors:
-            vendors.append(GPUVendor.INTEL)
+    # Filter for GPU-related lines
+    gpu_lines = filter(
+      lambda line: any(x in line for x in ["vga compatible controller", "3d controller", "display controller"]),
+      output.splitlines(),
+    )
 
-        if "amd" in line or "ati" in line or "advanced micro devices" in line:
-          if GPUVendor.AMD not in vendors:
-            vendors.append(GPUVendor.AMD)
+    vendor_checks = [
+      (lambda line: "intel" in line, GPUVendor.INTEL),
+      (lambda line: any(x in line for x in ["amd", "ati", "advanced micro devices"]), GPUVendor.AMD),
+      (lambda line: any(x in line for x in ["nvidia", "geforce", "quadro", "tesla"]), GPUVendor.NVIDIA),
+    ]
 
-        if "nvidia" in line or "geforce" in line or "quadro" in line or "tesla" in line:
-          if GPUVendor.NVIDIA not in vendors:
-            vendors.append(GPUVendor.NVIDIA)
-
-    if not vendors:
-      vendors.append(GPUVendor.UNKNOWN)
-
-    return vendors
+    # Detect vendors using set comprehension to avoid duplicates
+    vendors = list({vendor for line in gpu_lines for predicate, vendor in vendor_checks if predicate(line)})
+    return vendors or [GPUVendor.UNKNOWN]
 
   except Exception as e:
     info(f"{yellow}Warning: Error detecting GPU: {e}{reset}")
@@ -356,8 +352,8 @@ def get_gpu_packages(distro_id: str, vendors: list[GPUVendor] | None = None) -> 
   if vendors is None:
     vendors = detect_gpu_vendors()
 
-  # Load GPU package mappings from config.json
   config_file = os.path.join(os.path.dirname(__file__), "../config.json")
+
   try:
     with open(config_file, "r") as f:
       config_data = json.load(f)
@@ -376,9 +372,6 @@ def get_gpu_packages(distro_id: str, vendors: list[GPUVendor] | None = None) -> 
     info(f"{yellow}Warning: Error loading GPU packages from config.json: {e}{reset}")
     return []
 
-  packages: set[str] = set()
-
-  # Map GPUVendor enum to config keys
   vendor_key_map = {
     GPUVendor.INTEL: "intel",
     GPUVendor.AMD: "amd",
@@ -386,14 +379,16 @@ def get_gpu_packages(distro_id: str, vendors: list[GPUVendor] | None = None) -> 
     GPUVendor.UNKNOWN: "unknown",
   }
 
-  for vendor in vendors:
-    vendor_key = vendor_key_map.get(vendor)
-    if vendor_key and vendor_key in gpu_config:
-      vendor_packages = gpu_config[vendor_key]
-      if isinstance(vendor_packages, list):
-        packages.update(vendor_packages)
+  packages = {
+    pkg
+    for vendor in vendors
+    if (vendor_key := vendor_key_map.get(vendor))
+    if vendor_key in gpu_config
+    for pkg in gpu_config[vendor_key]
+    if isinstance(gpu_config[vendor_key], list)
+  }
 
-  return sorted(list(packages))
+  return sorted(packages)
 
 
 def print_detected_gpus(vendors: list[GPUVendor]) -> None:
