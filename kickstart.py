@@ -251,8 +251,13 @@ def main() -> None:
 
       # Check if profile distro matches system distro
       if ctx.profile.distro != ctx.distro_id:
-        error(f"Profile distro mismatch: profile requires '{ctx.profile.distro}' but system is '{ctx.distro_id}'")
-        sys.exit(1)
+        if config.dry:
+          print(
+            f"{yellow}Warning: Profile distro mismatch - profile requires '{ctx.profile.distro}' but system is '{ctx.distro_id}'{reset}"
+          )
+        else:
+          error(f"Profile distro mismatch: profile requires '{ctx.profile.distro}' but system is '{ctx.distro_id}'")
+          sys.exit(1)
 
       # Apply profile configuration overrides to base config
       # (only if not explicitly set via CLI)
