@@ -1,6 +1,6 @@
 # kickstart
 
-Automated installer for Void Linux with encrypted BTRFS and sensible defaults.
+Automated installer for supported Linux distros with encrypted BTRFS and sensible defaults.
 
 > **WARNING**: This installer is DESTRUCTIVE and will wipe the selected disk. Always use `--dry` first.
 

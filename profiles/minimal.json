@@ -1,6 +1,6 @@
 {
   "name": "Minimal System",
-  "description": "Bare minimum Void Linux installation with only essential packages",
+  "description": "Bare minimum Linux installation with only essential packages",
   "version": "1.0",
   "config": {
     "libc": "glibc",

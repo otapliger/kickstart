@@ -62,12 +62,12 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
   parser = argparse.ArgumentParser(
     formatter_class=IndentedHelpFormatter,
     description=dedent("""
-      A user-friendly, automated installer for Void Linux,
+      A user-friendly, automated installer for supported Linux distros,
       designed to simplify and streamline the installation process.
 
       This installer creates a minimal base system - a clean kickstart
       from which you can build up your environment without bloat.
-      It sets up a fully encrypted Void Linux system with BTRFS
+      It sets up a fully encrypted Linux system with BTRFS
       subvolumes and modern boot configuration.
     """),
     epilog=dedent("""
@@ -282,7 +282,7 @@ def main() -> None:
     else:
       print()
       info("Installation completed successfully!")
-      info("You can now reboot your system to start using Void Linux.")
+      info("You can now reboot your system.")
 
   except Exception as e:
     error(f"Unexpected error during installation: {e}")

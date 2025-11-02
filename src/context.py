@@ -34,7 +34,7 @@ class Config:
 
 class InstallerContext:
   """
-  Holds the state and configuration for the Void Linux installation process.
+  Holds the state and configuration for the installation process.
 
   This context object is passed between installation steps to maintain
   user choices and system state throughout the installation, including

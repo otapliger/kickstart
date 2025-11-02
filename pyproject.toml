@@ -1,7 +1,7 @@
 [project]
 name = "kickstart"
 version = "0.1.0"
-description = "A user-friendly, automated installer for Void Linux, designed to simplify and streamline the installation process."
+description = "A user-friendly, automated installer for supported Linux distros, designed to simplify and streamline the installation process."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
