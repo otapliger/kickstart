@@ -1,5 +1,5 @@
 """
-Profile management system for void.kickstart.
+Profile management system for kickstart.
 
 Supports loading installation profiles from local files or HTTP URLs.
 Profiles define predefined configurations that can override defaults
@@ -55,6 +55,7 @@ class InstallationProfile:
     # Validate required fields
     if "name" not in data:
       raise ValueError("Profile must have a 'name' field")
+
     if "description" not in data:
       raise ValueError("Profile must have a 'description' field")
 
@@ -63,6 +64,7 @@ class InstallationProfile:
 
     if not isinstance(name, str):
       raise ValueError("Profile 'name' must be a string")
+
     if not isinstance(description, str):
       raise ValueError("Profile 'description' must be a string")
 
@@ -137,12 +139,16 @@ class InstallationProfile:
     config_dict: dict[str, str] = {}
     if self.config.libc is not None:
       config_dict["libc"] = self.config.libc
+
     if self.config.timezone is not None:
       config_dict["timezone"] = self.config.timezone
+
     if self.config.keymap is not None:
       config_dict["keymap"] = self.config.keymap
+
     if self.config.locale is not None:
       config_dict["locale"] = self.config.locale
+
     if self.config.repository is not None:
       config_dict["repository"] = self.config.repository
 
@@ -153,6 +159,7 @@ class InstallationProfile:
     packages_dict: dict[str, list[str]] = {}
     if self.packages.additional:
       packages_dict["additional"] = self.packages.additional
+
     if self.packages.exclude:
       packages_dict["exclude"] = self.packages.exclude
 
@@ -162,6 +169,7 @@ class InstallationProfile:
     # Add optional fields
     if self.hostname is not None:
       result["hostname"] = self.hostname
+
     if self.post_install_commands:
       result["post_install_commands"] = self.post_install_commands
 
@@ -181,28 +189,30 @@ class ProfileLoader:
       req = urllib.request.Request(
         url,
         headers={
-          "User-Agent": "void.kickstart/0.1.0",
+          "User-Agent": "kickstart/0.1.0",
           "Accept": "application/json",
         },
       )
 
       with urllib.request.urlopen(req, timeout=10) as response:
-        # Check response status - handle different response types
         if hasattr(response, "status"):
           status_code = response.status
+
         elif hasattr(response, "code"):
           status_code = response.code
+
         else:
           status_code = 200
 
         if status_code != 200:
           if hasattr(response, "reason"):
             reason = response.reason
+
           else:
             reason = "Unknown error"
+
           raise ValueError(f"HTTP {status_code}: {reason}")
 
-        # Check content type
         content_type = ""
         if hasattr(response, "headers") and hasattr(response.headers, "get"):
           content_type = response.headers.get("Content-Type", "")
@@ -210,7 +220,6 @@ class ProfileLoader:
         if content_type and "application/json" not in content_type and "text/json" not in content_type:
           print(f"{yellow}Warning: Server returned Content-Type '{content_type}', expected JSON{reset}")
 
-        # Read and decode response
         data_bytes = response.read()
         data_str = data_bytes.decode("utf-8")
         parsed_data = json.loads(data_str)
@@ -222,6 +231,7 @@ class ProfileLoader:
 
     except urllib.error.URLError as e:
       raise ValueError(f"Failed to load profile from URL: {e}") from e
+
     except json.JSONDecodeError as e:
       raise ValueError(f"Invalid JSON in profile: {e}") from e
 
@@ -245,6 +255,7 @@ class ProfileLoader:
 
     except json.JSONDecodeError as e:
       raise ValueError(f"Invalid JSON in profile file: {e}") from e
+
     except OSError as e:
       raise ValueError(f"Failed to read profile file: {e}") from e
 
@@ -265,6 +276,7 @@ class ProfileLoader:
     try:
       if source.startswith(("http://", "https://")):
         data = cls._load_from_url(source)
+
       else:
         data = cls._load_from_file(source)
 
@@ -272,13 +284,14 @@ class ProfileLoader:
       validation_issues = validate_profile_json(data)
       if validation_issues:
         error(f"Profile validation failed for '{source}':")
+
         for issue in validation_issues:
           print(f"  • {issue}")
+
         raise ValueError(f"Profile contains {len(validation_issues)} validation error(s)")
 
       profile = InstallationProfile.from_dict(data)
       info(f"Successfully loaded profile: {green}{profile.name}{reset}")
-
       return profile
 
     except Exception as e:

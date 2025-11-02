@@ -1,4 +1,4 @@
-# void.kickstart
+# kickstart
 
 Automated installer for Void Linux with encrypted BTRFS and sensible defaults.
 

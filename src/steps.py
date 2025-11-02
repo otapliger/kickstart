@@ -207,6 +207,7 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
     cmd("xbps-reconfigure -f glibc-locales -r /mnt", ctx.dry)
 
   info("- installing packages and configuring services")
+
   generate_chroot(
     path="/mnt/root/chroot.sh",
     ctx=ctx,
@@ -221,9 +222,8 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
   cmd("mount --rbind /run /mnt/run", ctx.dry)
   cmd("mount --rbind /dev /mnt/dev", ctx.dry)
   cmd("chroot /mnt /bin/bash -x /root/chroot.sh", ctx.dry)
-  # Ensure user credentials are present; step 01 collected them
-  assert isinstance(ctx.user_pass, str), "user_pass must be set before configuring system"
   assert isinstance(ctx.user_name, str), "user_name must be set before configuring system"
+  assert isinstance(ctx.user_pass, str), "user_pass must be set before configuring system"
   scmd("chroot /mnt passwd root", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry)
   scmd(f"chroot /mnt passwd {ctx.user_name}", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry)
 

@@ -1,5 +1,5 @@
 """
-Validation functions for void.kickstart.
+Validation functions for kickstart.
 
 This module contains all validation functions used throughout the application
 for validating URLs, timezones, locales, hostnames, profiles, and JSON data.

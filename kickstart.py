@@ -148,7 +148,7 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
     help="system hostname",
     dest="hostname",
   )
-  _ = parser.add_argument("--version", action="version", version="void.kickstart 0.1.0")
+  _ = parser.add_argument("--version", action="version", version="kickstart 0.1.0")
 
   return parser
 

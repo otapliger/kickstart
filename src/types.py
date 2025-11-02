@@ -1,5 +1,5 @@
 """
-Type definitions for void.kickstart.
+Type definitions for kickstart.
 
 This module contains all custom type definitions used throughout the application.
 """
