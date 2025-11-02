@@ -2,6 +2,7 @@ import subprocess
 import sys
 from typing import Callable
 from src.ansi_codes import bold, yellow, reset
+from src.context import InstallerContext
 from src.chroot import generate_chroot
 from src.utils import (
   error,
@@ -17,13 +18,11 @@ from src.utils import (
   set_mirror,
   load_defaults,
 )
-from src.context import InstallerContext
-
-
-DEFAULTS = load_defaults()
 
 
 def step_01_settings(ctx: InstallerContext) -> None:
+  DEFAULTS = load_defaults(ctx.distro_id)
+
   print(f"  • C library: {ctx.config.libc}")
   print(f"  • Keymap: {ctx.config.keymap}")
   print(f"  • Locale: {ctx.config.locale}")
@@ -53,7 +52,7 @@ def step_01_settings(ctx: InstallerContext) -> None:
     ctx.repository = ctx.config.repository
     print(f"Using repository from command line: {ctx.repository}")
   else:
-    ctx.repository = set_mirror()
+    ctx.repository = set_mirror(ctx.distro_id)
 
   # Confirmation prompt
   warning = f"{bold}{yellow}WARNING:{reset}"
@@ -132,7 +131,8 @@ def step_03_system_bootstrap(ctx: InstallerContext) -> None:
     "ufw",
   ]
   pkgs = " ".join(pkgs_list)
-  repository = ctx.repository or DEFAULTS["repository"]
+  defaults = load_defaults(ctx.distro_id)
+  repository = ctx.repository or defaults["repository"]
   cmd(f"xbps-install -Sy -R '{repository}' -r /mnt {pkgs}", ctx.dry)
 
 
@@ -177,7 +177,8 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
   )
   write("/mnt/etc/hostname", [f"{ctx.host}"], ctx.dry)
   write("/mnt/etc/hosts", [f"127.0.0.1 localhost {ctx.host}", "::1 localhost"], ctx.dry)
-  write("/mnt/etc/ntpd.conf", [f"server {str(server)}" for server in DEFAULTS["ntp"]], ctx.dry)
+  defaults = load_defaults(ctx.distro_id)
+  write("/mnt/etc/ntpd.conf", [f"server {str(server)}" for server in defaults["ntp"]], ctx.dry)
   write(
     "/mnt/etc/locale.conf", [f"export {var}={ctx.config.locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]], ctx.dry
   )

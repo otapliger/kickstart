@@ -8,4 +8,4 @@ dependencies = []
 
 [tool.basedpyright]
 pythonVersion = "3.12"
-strict = true
+strict = []

@@ -55,13 +55,16 @@ def _section_grub_install(crypt_uuid: str, distro_name: str) -> str:
 
 def _get_package_list(ctx: InstallerContext) -> list[str]:
   """Get final package list based on profile configuration."""
-  # Load default packages
-  pkgs_file = os.path.join(os.path.dirname(__file__), "../config/void/pkgs.json")
+  config_file = os.path.join(os.path.dirname(__file__), "../config.json")
   try:
-    with open(pkgs_file) as f:
-      default_pkgs: list[str] = json.load(f)
+    with open(config_file) as f:
+      config_data = json.load(f)
+      if "packages" not in config_data or ctx.distro_id not in config_data["packages"]:
+        error(f"No packages found for distro '{ctx.distro_id}' in config.json")
+        return []
+      default_pkgs: list[str] = config_data["packages"][ctx.distro_id]
   except (FileNotFoundError, json.JSONDecodeError) as e:
-    error(f"Error loading packages from pkgs.json: {e}")
+    error(f"Error loading packages from config.json: {e}")
     return []
 
   # Start with default packages

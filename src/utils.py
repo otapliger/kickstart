@@ -158,12 +158,16 @@ def set_luks() -> str:
     return luks_pass
 
 
-def load_defaults() -> DefaultsConfig:
-  """Load default values from defaults.json file."""
-  defaults_file = os.path.join(os.path.dirname(__file__), "../config/void/defaults.json")
+def load_defaults(distro_id: str = "void") -> DefaultsConfig:
+  """Load default values from config.json file for specified distro."""
+  config_file = os.path.join(os.path.dirname(__file__), "../config.json")
   try:
-    with open(defaults_file, "r") as f:
-      defaults_data = json.load(f)
+    with open(config_file, "r") as f:
+      config_data = json.load(f)
+      if "defaults" not in config_data or distro_id not in config_data["defaults"]:
+        error(f"No defaults found for distro '{distro_id}' in config.json")
+        sys.exit(1)
+      defaults_data = config_data["defaults"][distro_id]
       data = validate_defaults_json(defaults_data)
       return DefaultsConfig(
         repository=str(data["repository"]),
@@ -174,34 +178,38 @@ def load_defaults() -> DefaultsConfig:
         ntp=[str(server) for server in data["ntp"]],
       )
   except (FileNotFoundError, json.JSONDecodeError) as e:
-    error(f"Error loading defaults.json: {e}")
+    error(f"Error loading config.json: {e}")
     sys.exit(1)
   except (KeyError, ValueError) as e:
-    error(f"Invalid defaults.json format: {e}")
+    error(f"Invalid config.json format: {e}")
     sys.exit(1)
 
 
-def load_mirrors() -> list[tuple[str, str, str]]:
-  """Load mirrors from mirrors.json file and return as list of (url, region, location) tuples."""
-  mirrors_file = os.path.join(os.path.dirname(__file__), "../config/void/mirrors.json")
+def load_mirrors(distro_id: str = "void") -> list[tuple[str, str, str]]:
+  """Load mirrors from config.json file for specified distro and return as list of (url, region, location) tuples."""
+  config_file = os.path.join(os.path.dirname(__file__), "../config.json")
   try:
-    with open(mirrors_file, "r") as f:
-      mirrors_data = json.load(f)
+    with open(config_file, "r") as f:
+      config_data = json.load(f)
+      if "mirrors" not in config_data or distro_id not in config_data["mirrors"]:
+        error(f"No mirrors found for distro '{distro_id}' in config.json")
+        sys.exit(1)
+      mirrors_data = config_data["mirrors"][distro_id]
       data = validate_mirrors_json(mirrors_data)
       mirrors = [(mirror["url"], mirror["region"], mirror["location"]) for mirror in data]
   except (FileNotFoundError, json.JSONDecodeError) as e:
-    error(f"Error loading mirrors.json: {e}")
+    error(f"Error loading config.json: {e}")
     sys.exit(1)
   except ValueError as e:
-    error(f"Invalid mirrors.json format: {e}")
+    error(f"Invalid config.json format: {e}")
     sys.exit(1)
   return mirrors
 
 
-def set_mirror() -> str:
-  """Allow user to select a Void Linux mirror."""
-  default_repository = load_defaults()["repository"]
-  mirrors = load_mirrors()
+def set_mirror(distro_id: str = "void") -> str:
+  """Allow user to select a mirror for the specified distro."""
+  default_repository = load_defaults(distro_id)["repository"]
+  mirrors = load_mirrors(distro_id)
   if not mirrors:
     error("No mirrors available. Using default.")
     return str(default_repository)
@@ -229,16 +237,18 @@ def set_mirror() -> str:
       error("Invalid input. Please enter a number or press Enter for default.")
 
 
-def get_distro_info(file_path: str = "/etc/os-release", dry_run: bool = False) -> tuple[str, str]:
+def get_distro_info(file_path: str = "/etc/os-release") -> tuple[str, str]:
   """
   Extract NAME and ID from os-release file.
 
   Args:
       file_path: Path to os-release file
-      dry_run: If True, show warning instead of exiting on errors
 
   Returns:
       Tuple of (name, id) where both default to "Linux"/"linux" if not found
+
+  Raises:
+      SystemExit: If file cannot be read
   """
   try:
     with open(file_path, "r") as f:
@@ -264,8 +274,5 @@ def get_distro_info(file_path: str = "/etc/os-release", dry_run: bool = False) -
           break
       return name or "Linux", distro_id or "linux"
   except (FileNotFoundError, IOError) as e:
-    if dry_run:
-      return "Linux", "linux"
-    else:
-      error(f"Failed to read distribution info from {file_path}: {e}")
-      sys.exit(1)
+    error(f"Failed to read distribution info from {file_path}: {e}")
+    sys.exit(1)

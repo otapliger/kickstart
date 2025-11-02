@@ -1,0 +1,78 @@
+{
+  "defaults": {
+    "linux": {
+      "repository": "https://example.com/repo",
+      "timezone": "Europe/London",
+      "locale": "en_GB.UTF-8",
+      "keymap": "uk",
+      "libc": "glibc",
+      "ntp": [
+        "0.europe.pool.ntp.org",
+        "1.europe.pool.ntp.org",
+        "2.europe.pool.ntp.org",
+        "3.europe.pool.ntp.org"
+      ]
+    },
+    "void": {
+      "repository": "https://repo-fastly.voidlinux.org/current",
+      "timezone": "Europe/London",
+      "locale": "en_GB.UTF-8",
+      "keymap": "uk",
+      "libc": "glibc",
+      "ntp": [
+        "0.europe.pool.ntp.org",
+        "1.europe.pool.ntp.org",
+        "2.europe.pool.ntp.org",
+        "3.europe.pool.ntp.org"
+      ]
+    }
+  },
+  "mirrors": {
+    "linux": [
+      {
+        "url": "https://example.com/repo",
+        "region": "Global",
+        "location": "Generic Mirror"
+      }
+    ],
+    "void": [
+      {
+        "url": "https://repo-fastly.voidlinux.org/current",
+        "region": "Global",
+        "location": "Fastly CDN"
+      },
+      {
+        "url": "https://repo-fi.voidlinux.org/current",
+        "region": "Europe",
+        "location": "Helsinki, Finland"
+      },
+      {
+        "url": "https://repo-de.voidlinux.org/current",
+        "region": "Europe",
+        "location": "Frankfurt, Germany"
+      },
+      {
+        "url": "https://mirrors.servercentral.com/voidlinux/current",
+        "region": "North America",
+        "location": "Chicago, USA"
+      }
+    ]
+  },
+  "packages": {
+    "linux": ["base-system"],
+    "void": [
+      "bat",
+      "cmake",
+      "ffmpeg",
+      "fish-shell",
+      "git",
+      "helix",
+      "intel-media-driver",
+      "libva-intel-driver",
+      "ninja",
+      "ripgrep",
+      "unzip",
+      "zip"
+    ]
+  }
+}

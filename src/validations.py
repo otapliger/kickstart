@@ -149,6 +149,47 @@ def validate_mirrors_json(data: Any) -> list[MirrorData]:
   return data
 
 
+def validate_config_json(data: Any, distro_id: str) -> None:
+  """Validate unified config.json structure for a specific distro.
+
+  Args:
+      data: The parsed JSON data
+      distro_id: The distribution ID to validate (e.g., 'void')
+
+  Raises:
+      ValueError: If the structure is invalid
+      KeyError: If required keys are missing
+  """
+  if not isinstance(data, dict):
+    raise ValueError("Config JSON must be an object")
+
+  # Validate top-level keys
+  required_sections = {"defaults", "mirrors", "packages"}
+  if not all(section in data for section in required_sections):
+    missing = required_sections - data.keys()
+    raise KeyError(f"Missing required sections: {missing}")
+
+  # Validate distro exists in each section
+  if distro_id not in data["defaults"]:
+    raise KeyError(f"Distro '{distro_id}' not found in defaults section")
+  if distro_id not in data["mirrors"]:
+    raise KeyError(f"Distro '{distro_id}' not found in mirrors section")
+  if distro_id not in data["packages"]:
+    raise KeyError(f"Distro '{distro_id}' not found in packages section")
+
+  # Validate defaults structure
+  validate_defaults_json(data["defaults"][distro_id])
+
+  # Validate mirrors structure
+  validate_mirrors_json(data["mirrors"][distro_id])
+
+  # Validate packages structure
+  if not isinstance(data["packages"][distro_id], list):
+    raise ValueError(f"Packages for '{distro_id}' must be a list")
+  if not all(isinstance(pkg, str) for pkg in data["packages"][distro_id]):
+    raise ValueError(f"All packages for '{distro_id}' must be strings")
+
+
 def validate_cli_arguments(
   repository: str,
   timezone: str,

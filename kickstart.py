@@ -8,14 +8,11 @@ from typing import override
 from src.ansi_codes import red, reset, yellow, bold
 from src.ascii_art import print_logo
 from src.steps import install
-from src.utils import error, info, load_defaults, get_distro_info
+from src.utils import error, info, load_defaults, get_distro_info, DefaultsConfig
 from src.context import InstallerContext, Config
 from src.profiles import ProfileLoader
 from src.validations import validate_cli_arguments
 from textwrap import dedent
-
-
-DEFAULTS = load_defaults()
 
 
 class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -55,7 +52,7 @@ def _check_system_requirements() -> None:
     sys.exit(3)
 
 
-def _create_argument_parser() -> argparse.ArgumentParser:
+def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser:
   """Create and configure the argument parser."""
   parser = argparse.ArgumentParser(
     formatter_class=IndentedHelpFormatter,
@@ -100,7 +97,7 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     "--libc",
     metavar="LIBC",
     type=str,
-    default=DEFAULTS["libc"],
+    default=defaults["libc"],
     help="C library implementation (glibc or musl) [default: %(default)s]",
     dest="libc",
   )
@@ -109,7 +106,7 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     "--repository",
     metavar="URL",
     type=str,
-    default=DEFAULTS["repository"],
+    default=defaults["repository"],
     help="override interactive mirror selection with specific repository URL [default: %(default)s]",
     dest="repository",
   )
@@ -118,7 +115,7 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     "--timezone",
     metavar="TIMEZONE",
     type=str,
-    default=DEFAULTS["timezone"],
+    default=defaults["timezone"],
     help="system timezone in Region/City format [default: %(default)s]",
     dest="timezone",
   )
@@ -127,7 +124,7 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     "--keymap",
     metavar="KEYMAP",
     type=str,
-    default=DEFAULTS["keymap"],
+    default=defaults["keymap"],
     help="keyboard layout for the system [default: %(default)s]",
     dest="keymap",
   )
@@ -135,7 +132,7 @@ def _create_argument_parser() -> argparse.ArgumentParser:
     "--locale",
     metavar="LOCALE",
     type=str,
-    default=DEFAULTS["locale"],
+    default=defaults["locale"],
     help="system locale (e.g., en_US, en_US.UTF-8, C, POSIX) [default: %(default)s]",
     dest="locale",
   )
@@ -192,11 +189,20 @@ def main() -> None:
   # Clear the screen
   print("\033[2J\033[H", end="")
 
-  parser = _create_argument_parser()
+  # Get distro info early to load correct defaults
+  # If os-release doesn't exist and we're in dry mode, default to "linux"
+  if not Path("/etc/os-release").exists() and ("--dry" in sys.argv or "-d" in sys.argv):
+    distro_name, distro_id = "Linux", "linux"
+  else:
+    distro_name, distro_id = get_distro_info()
+
+  # Load defaults for the detected distro
+  DEFAULTS = load_defaults(distro_id)
+
+  parser = _create_argument_parser(DEFAULTS)
   args = parser.parse_args()
   config = Config.from_namespace(args)
 
-  distro_name, distro_id = get_distro_info(dry_run=config.dry)
   print_logo(distro_id)
 
   if config.dry:
