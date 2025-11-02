@@ -127,8 +127,14 @@ def step_03_system_bootstrap(ctx: InstallerContext) -> None:
     "arch": [
       "base",
       "base-devel",
+      "chrony",
+      "cryptsetup",
+      "dhcpcd",
+      "efibootmgr",
+      "grub",
+      "grub-btrfs",
       "linux",
-      "linux-firmware",
+      "ufw",
     ],
     "linux": ["linux"],
     "void": [
