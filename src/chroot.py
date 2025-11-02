@@ -2,7 +2,7 @@ import os
 import subprocess
 import json
 from src.ansi_codes import gray, reset
-from src.utils import info, error
+from src.utils import info, error, detect_gpu_vendors, get_gpu_packages, print_detected_gpus
 from src.context import InstallerContext
 from textwrap import dedent
 
@@ -54,7 +54,7 @@ def _section_grub_install(crypt_uuid: str, distro_name: str) -> str:
 
 
 def _get_package_list(ctx: InstallerContext) -> list[str]:
-  """Get final package list based on profile configuration."""
+  """Get final package list based on profile configuration and GPU detection."""
   config_file = os.path.join(os.path.dirname(__file__), "../config.json")
   try:
     with open(config_file) as f:
@@ -69,6 +69,14 @@ def _get_package_list(ctx: InstallerContext) -> list[str]:
 
   # Start with default packages
   final_pkgs: set[str] = set(default_pkgs)
+
+  info("Detecting GPU hardware...")
+  gpu_vendors = detect_gpu_vendors()
+  print_detected_gpus(gpu_vendors)
+  gpu_packages = get_gpu_packages(ctx.distro_id, gpu_vendors)
+  if gpu_packages:
+    info(f"Adding GPU packages: {', '.join(gpu_packages)}")
+    final_pkgs.update(gpu_packages)
 
   # Apply profile package configuration if available
   if ctx.profile and ctx.profile.packages:

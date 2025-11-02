@@ -134,6 +134,7 @@ def step_03_system_bootstrap(ctx: InstallerContext) -> None:
     "grub-x86_64-efi",
     "linux",
     "ufw",
+    "void-repo-nonfree",
   ]
 
   pkgs = " ".join(pkgs_list)

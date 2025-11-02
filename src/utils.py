@@ -7,6 +7,7 @@ import json
 from src.ansi_codes import green, red, reset, gray, yellow
 from src.validations import validate_defaults_json, validate_mirrors_json
 from src.types import DefaultsConfig
+from enum import Enum
 
 
 def info(message: str) -> None:
@@ -298,3 +299,129 @@ def get_distro_info(file_path: str = "/etc/os-release") -> tuple[str, str]:
   except (FileNotFoundError, IOError) as e:
     error(f"Failed to read distribution info from {file_path}: {e}")
     sys.exit(1)
+
+
+class GPUVendor(Enum):
+  """Enumeration of GPU vendors."""
+
+  INTEL = "intel"
+  AMD = "amd"
+  NVIDIA = "nvidia"
+  UNKNOWN = "unknown"
+
+
+def detect_gpu_vendors() -> list[GPUVendor]:
+  """
+  Detect GPU vendors present in the system by examining lspci output.
+
+  Returns:
+      List of GPUVendor enums representing detected GPUs
+  """
+  vendors: list[GPUVendor] = []
+
+  try:
+    result = subprocess.run(["lspci", "-nn"], capture_output=True, text=True, check=False)
+
+    if result.returncode != 0:
+      info(f"{yellow}Warning: Could not run lspci to detect GPU. Make sure pciutils is installed.{reset}")
+      return [GPUVendor.UNKNOWN]
+
+    output = result.stdout.lower()
+
+    for line in output.splitlines():
+      if "vga compatible controller" in line or "3d controller" in line or "display controller" in line:
+        if "intel" in line:
+          if GPUVendor.INTEL not in vendors:
+            vendors.append(GPUVendor.INTEL)
+
+        if "amd" in line or "ati" in line or "advanced micro devices" in line:
+          if GPUVendor.AMD not in vendors:
+            vendors.append(GPUVendor.AMD)
+
+        if "nvidia" in line or "geforce" in line or "quadro" in line or "tesla" in line:
+          if GPUVendor.NVIDIA not in vendors:
+            vendors.append(GPUVendor.NVIDIA)
+
+    if not vendors:
+      vendors.append(GPUVendor.UNKNOWN)
+
+    return vendors
+
+  except Exception as e:
+    info(f"{yellow}Warning: Error detecting GPU: {e}{reset}")
+    return [GPUVendor.UNKNOWN]
+
+
+def get_gpu_packages(distro_id: str, vendors: list[GPUVendor] | None = None) -> list[str]:
+  """
+  Get the appropriate GPU driver packages for a distro based on detected vendors.
+
+  Args:
+      distro_id: Distribution identifier
+      vendors: Optional list of GPU vendors
+
+  Returns:
+      List of package names for the detected GPU vendors
+  """
+  if vendors is None:
+    vendors = detect_gpu_vendors()
+
+  # Load GPU package mappings from config.json
+  config_file = os.path.join(os.path.dirname(__file__), "../config.json")
+  try:
+    with open(config_file, "r") as f:
+      config_data = json.load(f)
+
+      if "gpu_packages" not in config_data:
+        info(f"{yellow}Warning: No 'gpu_packages' section in config.json{reset}")
+        return []
+
+      if distro_id not in config_data["gpu_packages"]:
+        info(f"{yellow}Warning: No GPU packages defined for distro '{distro_id}'{reset}")
+        return []
+
+      gpu_config = config_data["gpu_packages"][distro_id]
+
+  except (FileNotFoundError, json.JSONDecodeError) as e:
+    info(f"{yellow}Warning: Error loading GPU packages from config.json: {e}{reset}")
+    return []
+
+  packages: set[str] = set()
+
+  # Map GPUVendor enum to config keys
+  vendor_key_map = {
+    GPUVendor.INTEL: "intel",
+    GPUVendor.AMD: "amd",
+    GPUVendor.NVIDIA: "nvidia",
+    GPUVendor.UNKNOWN: "unknown",
+  }
+
+  for vendor in vendors:
+    vendor_key = vendor_key_map.get(vendor)
+    if vendor_key and vendor_key in gpu_config:
+      vendor_packages = gpu_config[vendor_key]
+      if isinstance(vendor_packages, list):
+        packages.update(vendor_packages)
+
+  return sorted(list(packages))
+
+
+def print_detected_gpus(vendors: list[GPUVendor]) -> None:
+  """
+  Print detected GPU vendors in a user-friendly format.
+
+  Args:
+      vendors: List of detected GPU vendors
+  """
+  if not vendors or vendors == [GPUVendor.UNKNOWN]:
+    info("No specific GPU detected, will use generic drivers.")
+    return
+
+  info("Detected GPU(s):")
+  for vendor in vendors:
+    if vendor == GPUVendor.INTEL:
+      print("  - Intel GPU")
+    elif vendor == GPUVendor.AMD:
+      print("  - AMD GPU")
+    elif vendor == GPUVendor.NVIDIA:
+      print("  - NVIDIA GPU")

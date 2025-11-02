@@ -67,12 +67,37 @@
       "fish-shell",
       "git",
       "helix",
-      "intel-media-driver",
-      "libva-intel-driver",
       "ninja",
       "ripgrep",
       "unzip",
+      "vpm",
       "zip"
     ]
+  },
+  "gpu_packages": {
+    "linux": {
+      "intel": [],
+      "amd": [],
+      "nvidia": [],
+      "unknown": []
+    },
+    "void": {
+      "intel": [
+        "intel-media-driver",
+        "intel-video-accel",
+        "mesa-dri",
+        "mesa-vulkan-intel",
+        "vulkan-loader"
+      ],
+      "amd": [
+        "mesa-dri",
+        "mesa-vaapi",
+        "mesa-vdpau",
+        "mesa-vulkan-radeon",
+        "vulkan-loader"
+      ],
+      "nvidia": ["nvidia", "nvidia-libs", "vulkan-loader"],
+      "unknown": ["mesa-dri", "vulkan-loader"]
+    }
   }
 }
