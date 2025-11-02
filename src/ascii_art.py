@@ -1,17 +1,17 @@
 from src.ansi_codes import bold, green, white, blue, reset, yellow
 
-void: str = f"""{bold}{green}
-     _______
-  _ \\______ -
- | \\  ___  \\ |
- | | /   \\ | |
- | | \\___/ | |
- | \\______ \\_|
-  -_______\\{bold}{white}
+linux: str = f"""{white}
+     ___
+    |.. |
+    |{yellow}<> {white}|
+   / __  \\
+  ( /  \\ /|
+ {yellow}_{white}/\\ __{white})/{yellow}_{white})
+ {yellow}\\/{white}-____{yellow}\\/{bold}{white}
 
 █▄▀ █ █▀▀ █▄▀ █▀ ▀█▀ ▄▀█ █▀█ ▀█▀
 █░█ █ █▄▄ █░█ ▄█  █  █▀█ █▀▄  █
-{green}Welcome to kickstart, a Void Linux installer.{reset}"""
+{yellow}Welcome to kickstart, a Linux installer.{reset}"""
 
 arch: str = f"""{bold}{blue}
        /\\
@@ -26,24 +26,24 @@ arch: str = f"""{bold}{blue}
 █░█ █ █▄▄ █░█ ▄█  █  █▀█ █▀▄  █
 {blue}Welcome to kickstart, an Arch Linux installer.{reset}"""
 
-linux: str = f"""{white}
-     ___
-    |.. |
-    |{yellow}<> {white}|
-   / __  \\
-  ( /  \\ /|
- {yellow}_{white}/\\ __{white})/{yellow}_{white})
- {yellow}\\/{white}-____{yellow}\\/{bold}{white}
+void: str = f"""{bold}{green}
+     _______
+  _ \\______ -
+ | \\  ___  \\ |
+ | | /   \\ | |
+ | | \\___/ | |
+ | \\______ \\_|
+  -_______\\{bold}{white}
 
 █▄▀ █ █▀▀ █▄▀ █▀ ▀█▀ ▄▀█ █▀█ ▀█▀
 █░█ █ █▄▄ █░█ ▄█  █  █▀█ █▀▄  █
-{yellow}Welcome to kickstart, a Linux installer.{reset}"""
+{green}Welcome to kickstart, a Void Linux installer.{reset}"""
 
 
 def print_logo(distro_id: str) -> None:
   logos = {
-    "void": void,
-    "arch": arch,
     "linux": linux,
+    "arch": arch,
+    "void": void,
   }
   print(logos.get(distro_id, linux))

@@ -142,40 +142,44 @@ def step_03_system_bootstrap(ctx: InstallerContext) -> None:
 
   info("- installing base system")
 
-  base_pkgs_dict = {
-    "arch": [
-      "base",
-      "base-devel",
-      "chrony",
-      "cryptsetup",
-      "dhcpcd",
-      "efibootmgr",
-      "grub",
-      "grub-btrfs",
-      "linux",
-      "ufw",
-    ],
-    "linux": ["linux"],
-    "void": [
-      "base-devel",
-      "base-system",
-      "chrony",
-      "cryptsetup",
-      "dhcpcd",
-      "efibootmgr",
-      "grub-btrfs",
-      "grub-x86_64-efi",
-      "linux",
-      "ufw",
-      "void-repo-nonfree",
-    ],
-  }
+  if ctx.dry:
+    base_pkgs = ["base", "linux"]
 
-  if ctx.distro_id not in base_pkgs_dict:
-    error(f"Unsupported distribution: {ctx.distro_id}")
-    sys.exit(1)
+  else:
+    base_pkgs_dict = {
+      "arch": [
+        "base",
+        "base-devel",
+        "chrony",
+        "cryptsetup",
+        "dhcpcd",
+        "efibootmgr",
+        "grub",
+        "grub-btrfs",
+        "linux",
+        "ufw",
+      ],
+      "void": [
+        "base-devel",
+        "base-system",
+        "chrony",
+        "cryptsetup",
+        "dhcpcd",
+        "efibootmgr",
+        "grub-btrfs",
+        "grub-x86_64-efi",
+        "linux",
+        "ufw",
+        "void-repo-nonfree",
+      ],
+    }
 
-  base_pkgs = base_pkgs_dict[ctx.distro_id]
+    if ctx.distro_id not in base_pkgs_dict:
+      error(f"Unsupported distribution: {ctx.distro_id}")
+      sys.exit(1)
+
+    base_pkgs = base_pkgs_dict[ctx.distro_id]
+
   defaults = load_defaults(ctx.distro_id)
   repository = ctx.repository or defaults["repository"]
   cmd(f"xbps-install -Sy -R '{repository}' -r /mnt {' '.join(base_pkgs)}", ctx.dry)

@@ -59,7 +59,7 @@
     ]
   },
   "packages": {
-    "linux": ["base-system"],
+    "linux": ["tux", "fish"],
     "void": [
       "bat",
       "cmake",
@@ -76,24 +76,24 @@
   },
   "gpu_packages": {
     "linux": {
-      "intel": [],
       "amd": [],
+      "intel": [],
       "nvidia": [],
       "unknown": []
     },
     "void": {
-      "intel": [
-        "intel-media-driver",
-        "intel-video-accel",
-        "mesa-dri",
-        "mesa-vulkan-intel",
-        "vulkan-loader"
-      ],
       "amd": [
         "mesa-dri",
         "mesa-vaapi",
         "mesa-vdpau",
         "mesa-vulkan-radeon",
+        "vulkan-loader"
+      ],
+      "intel": [
+        "intel-media-driver",
+        "intel-video-accel",
+        "mesa-dri",
+        "mesa-vulkan-intel",
         "vulkan-loader"
       ],
       "nvidia": ["nvidia", "nvidia-libs", "vulkan-loader"],
