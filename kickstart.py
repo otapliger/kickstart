@@ -249,6 +249,11 @@ def main() -> None:
     try:
       ctx.profile = ProfileLoader.load(config.profile)
 
+      # Check if profile distro matches system distro
+      if ctx.profile.distro != ctx.distro_id:
+        error(f"Profile distro mismatch: profile requires '{ctx.profile.distro}' but system is '{ctx.distro_id}'")
+        sys.exit(1)
+
       # Apply profile configuration overrides to base config
       # (only if not explicitly set via CLI)
       if ctx.profile.config.libc and ctx.config.libc == DEFAULTS["libc"]:

@@ -43,6 +43,7 @@ class InstallationProfile:
 
   name: str
   description: str
+  distro: str
   version: str = "1.0"
   config: ProfileConfig = field(default_factory=ProfileConfig)
   packages: PackageSelection = field(default_factory=PackageSelection)
@@ -59,14 +60,21 @@ class InstallationProfile:
     if "description" not in data:
       raise ValueError("Profile must have a 'description' field")
 
+    if "distro" not in data:
+      raise ValueError("Profile must have a 'distro' field")
+
     name = data["name"]
     description = data["description"]
+    distro = data["distro"]
 
     if not isinstance(name, str):
       raise ValueError("Profile 'name' must be a string")
 
     if not isinstance(description, str):
       raise ValueError("Profile 'description' must be a string")
+
+    if not isinstance(distro, str):
+      raise ValueError("Profile 'distro' must be a string")
 
     # Create config overrides
     config_data = data.get("config", {})
@@ -121,6 +129,7 @@ class InstallationProfile:
       name=name,
       description=description,
       version=version,
+      distro=distro,
       config=config,
       packages=packages,
       hostname=hostname,
@@ -132,6 +141,7 @@ class InstallationProfile:
     result: dict[str, object] = {
       "name": self.name,
       "description": self.description,
+      "distro": self.distro,
       "version": self.version,
     }
 

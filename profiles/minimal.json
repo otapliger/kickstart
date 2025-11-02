@@ -2,6 +2,7 @@
   "name": "Minimal System",
   "description": "Bare minimum Linux installation with only essential packages",
   "version": "1.0",
+  "distro": "void",
   "config": {
     "libc": "glibc",
     "timezone": "Europe/London",

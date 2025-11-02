@@ -118,6 +118,9 @@ def validate_profile_json(data: dict[str, object]) -> list[str]:
   if not isinstance(data.get("description"), str):
     issues.append("Profile must have a 'description' field as string")
 
+  if not isinstance(data.get("distro"), str):
+    issues.append("Profile must have a 'distro' field as string")
+
   # Optional but validated fields
   config = data.get("config", {})
   if config is not None and not isinstance(config, dict):
