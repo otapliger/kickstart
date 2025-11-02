@@ -1,35 +1,6 @@
 from __future__ import annotations
-from argparse import Namespace
-from dataclasses import dataclass
 from src.profiles import InstallationProfile
-
-
-@dataclass
-class Config:
-  """Typed configuration object with all command line arguments."""
-
-  dry: bool
-  libc: str
-  repository: str
-  timezone: str
-  keymap: str
-  locale: str
-  hostname: str | None = None
-  profile: str | None = None
-
-  @classmethod
-  def from_namespace(cls, args: Namespace) -> Config:
-    """Create a typed Config from an argparse Namespace."""
-    return cls(
-      dry=bool(getattr(args, "dry", False)),
-      libc=str(getattr(args, "libc", "glibc")),
-      repository=str(getattr(args, "repository", "")),
-      timezone=str(getattr(args, "timezone", "UTC")),
-      keymap=str(getattr(args, "keymap", "us")),
-      locale=str(getattr(args, "locale", "C")),
-      hostname=getattr(args, "hostname", None),
-      profile=getattr(args, "profile", None),
-    )
+from src.types import ContextConfig
 
 
 class InstallerContext:
@@ -41,8 +12,8 @@ class InstallerContext:
   mirror selection, disk configuration, and user credentials.
   """
 
-  def __init__(self, config: Config) -> None:
-    self.config: Config = config
+  def __init__(self, config: ContextConfig) -> None:
+    self.config: ContextConfig = config
     self.profile: InstallationProfile | None = None
 
     # Distribution information

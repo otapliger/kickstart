@@ -9,11 +9,12 @@ from src.ansi_codes import red, reset, yellow, bold
 from src.ascii_art import print_logo
 from src.steps import install
 from src.utils import error, info, load_defaults, get_distro_info
-from src.types import DefaultsConfig
-from src.context import InstallerContext, Config
+from src.types import DefaultsConfig, ContextConfig
+from src.context import InstallerContext
 from src.profiles import ProfileLoader
 from src.validations import validate_cli_arguments
 from textwrap import dedent
+from argparse import Namespace
 
 
 class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -153,6 +154,20 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
   return parser
 
 
+def _create_context_config(args: Namespace) -> ContextConfig:
+  """Create a typed ContextConfig from an argparse Namespace."""
+  return ContextConfig(
+    dry=bool(getattr(args, "dry", False)),
+    libc=str(getattr(args, "libc", "glibc")),
+    repository=str(getattr(args, "repository", "")),
+    timezone=str(getattr(args, "timezone", "UTC")),
+    keymap=str(getattr(args, "keymap", "us")),
+    locale=str(getattr(args, "locale", "C")),
+    hostname=getattr(args, "hostname", None),
+    profile=getattr(args, "profile", None),
+  )
+
+
 def _run_installation(ctx: InstallerContext) -> None:
   """Run the installation process with proper error handling."""
   total_steps = len(install)
@@ -209,8 +224,7 @@ def main() -> None:
   DEFAULTS = load_defaults(distro_id)
 
   parser = _create_argument_parser(DEFAULTS)
-  args = parser.parse_args()
-  config = Config.from_namespace(args)
+  config = _create_context_config(parser.parse_args())
 
   print_logo(distro_id)
 

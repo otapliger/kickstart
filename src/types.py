@@ -6,6 +6,7 @@ This module contains all custom type definitions used throughout the application
 
 from typing import TypedDict
 from enum import Enum
+from dataclasses import dataclass
 
 
 class MirrorData(TypedDict):
@@ -34,3 +35,17 @@ class GPUVendor(Enum):
   AMD = "amd"
   NVIDIA = "nvidia"
   UNKNOWN = "unknown"
+
+
+@dataclass
+class ContextConfig:
+  """Typed configuration object with all command line arguments."""
+
+  dry: bool
+  libc: str
+  repository: str
+  timezone: str
+  keymap: str
+  locale: str
+  hostname: str | None = None
+  profile: str | None = None
