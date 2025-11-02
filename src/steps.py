@@ -123,24 +123,37 @@ def step_03_system_bootstrap(ctx: InstallerContext) -> None:
   cmd("cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys", ctx.dry)
 
   info("- installing base system")
-  pkgs_list = [
-    "base-devel",
-    "base-system",
-    "chrony",
-    "cryptsetup",
-    "dhcpcd",
-    "efibootmgr",
-    "grub-btrfs",
-    "grub-x86_64-efi",
-    "linux",
-    "ufw",
-    "void-repo-nonfree",
-  ]
+  base_pkgs_dict = {
+    "arch": [
+      "base",
+      "base-devel",
+      "linux",
+      "linux-firmware",
+    ],
+    "linux": ["linux"],
+    "void": [
+      "base-devel",
+      "base-system",
+      "chrony",
+      "cryptsetup",
+      "dhcpcd",
+      "efibootmgr",
+      "grub-btrfs",
+      "grub-x86_64-efi",
+      "linux",
+      "ufw",
+      "void-repo-nonfree",
+    ],
+  }
 
-  pkgs = " ".join(pkgs_list)
+  if ctx.distro_id not in base_pkgs_dict:
+    error(f"Unsupported distribution: {ctx.distro_id}")
+    sys.exit(1)
+
+  base_pkgs = base_pkgs_dict[ctx.distro_id]
   defaults = load_defaults(ctx.distro_id)
   repository = ctx.repository or defaults["repository"]
-  cmd(f"xbps-install -Sy -R '{repository}' -r /mnt {pkgs}", ctx.dry)
+  cmd(f"xbps-install -Sy -R '{repository}' -r /mnt {' '.join(base_pkgs)}", ctx.dry)
 
 
 def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None:
