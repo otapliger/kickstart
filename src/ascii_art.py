@@ -11,7 +11,7 @@ linux: str = f"""{white}
 
 █▄▀ █ █▀▀ █▄▀ █▀ ▀█▀ ▄▀█ █▀█ ▀█▀
 █░█ █ █▄▄ █░█ ▄█  █  █▀█ █▀▄  █
-{yellow}Welcome to kickstart, a Linux installer.{reset}"""
+{yellow}Linux installer, simplified.{reset}"""
 
 arch: str = f"""{bold}{blue}
        /\\
@@ -24,7 +24,7 @@ arch: str = f"""{bold}{blue}
 
 █▄▀ █ █▀▀ █▄▀ █▀ ▀█▀ ▄▀█ █▀█ ▀█▀
 █░█ █ █▄▄ █░█ ▄█  █  █▀█ █▀▄  █
-{blue}Welcome to kickstart, an Arch Linux installer.{reset}"""
+{blue}Arch Linux installer, simplified.{reset}"""
 
 void: str = f"""{bold}{green}
      _______
@@ -37,7 +37,7 @@ void: str = f"""{bold}{green}
 
 █▄▀ █ █▀▀ █▄▀ █▀ ▀█▀ ▄▀█ █▀█ ▀█▀
 █░█ █ █▄▄ █░█ ▄█  █  █▀█ █▀▄  █
-{green}Welcome to kickstart, a Void Linux installer.{reset}"""
+{green}Void Linux installer, simplified.{reset}"""
 
 
 def print_logo(distro_id: str) -> None:

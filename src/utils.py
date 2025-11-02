@@ -312,7 +312,7 @@ def detect_gpu_vendors() -> list[GPUVendor]:
     result = subprocess.run(["lspci", "-nn"], capture_output=True, text=True, check=False)
 
     if result.returncode != 0:
-      info(f"{yellow}Warning: Could not run lspci to detect GPU. Make sure pciutils is installed.{reset}")
+      info(f"{yellow}Warning: lspci command failed (exit code {result.returncode}). Unable to detect GPU.{reset}")
       return [GPUVendor.UNKNOWN]
 
     output = result.stdout.lower()
@@ -333,8 +333,12 @@ def detect_gpu_vendors() -> list[GPUVendor]:
     vendors = list({vendor for line in gpu_lines for predicate, vendor in vendor_checks if predicate(line)})
     return vendors or [GPUVendor.UNKNOWN]
 
+  except FileNotFoundError:
+    info(f"{yellow}Warning: Install pciutils to enable GPU detection{reset}")
+    return [GPUVendor.UNKNOWN]
+
   except Exception as e:
-    info(f"{yellow}Warning: Error detecting GPU: {e}{reset}")
+    info(f"{yellow}Warning: Unexpected error detecting GPU - {e}{reset}")
     return [GPUVendor.UNKNOWN]
 
 
