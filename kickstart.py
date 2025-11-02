@@ -8,7 +8,8 @@ from typing import override
 from src.ansi_codes import red, reset, yellow, bold
 from src.ascii_art import print_logo
 from src.steps import install
-from src.utils import error, info, load_defaults, get_distro_info, DefaultsConfig
+from src.utils import error, info, load_defaults, get_distro_info
+from src.types import DefaultsConfig
 from src.context import InstallerContext, Config
 from src.profiles import ProfileLoader
 from src.validations import validate_cli_arguments
@@ -24,14 +25,18 @@ class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
     options = action.option_strings
     if not options:
       return super()._format_action_invocation(action)
+
     parts: list[str] = []
     if len(options) == 1:
       parts.append(f"{'':4}{options[0]}")
+
     else:
       parts.append(f"{', '.join(options)}")
+
     if action.nargs != 0:
       default_metavar = self._get_default_metavar_for_optional(action)
       parts[-1] += f" {self._format_args(action, default_metavar)}"
+
     return parts[-1]
 
 
@@ -164,18 +169,22 @@ def _run_installation(ctx: InstallerContext) -> None:
 
     try:
       step(ctx)
+
     except KeyboardInterrupt:
       print()
       print(f"{red}Installation interrupted by user. Exiting...{reset}")
-      sys.exit(130)  # Standard exit code for SIGINT
+      sys.exit(130)
+
     except FileNotFoundError as e:
       error(f"Required file or directory not found: {e}")
       error("This might indicate a system configuration issue.")
       sys.exit(4)
+
     except PermissionError as e:
       error(f"Permission denied: {e}")
       error("Make sure you're running as root and have proper permissions.")
       sys.exit(5)
+
     except Exception as e:
       error(f"Step '{step_name}' failed with error: {e}")
       error("Installation cannot continue.")
@@ -221,6 +230,7 @@ def main() -> None:
     error("Invalid arguments provided:")
     for err in errors:
       print(f"  • {err}")
+
     print(f"\n{yellow}Use --help for valid options{reset}")
     sys.exit(1)
 
@@ -243,12 +253,16 @@ def main() -> None:
       # (only if not explicitly set via CLI)
       if ctx.profile.config.libc and ctx.config.libc == DEFAULTS["libc"]:
         ctx.config.libc = ctx.profile.config.libc
+
       if ctx.profile.config.timezone and ctx.config.timezone == DEFAULTS["timezone"]:
         ctx.config.timezone = ctx.profile.config.timezone
+
       if ctx.profile.config.keymap and ctx.config.keymap == DEFAULTS["keymap"]:
         ctx.config.keymap = ctx.profile.config.keymap
+
       if ctx.profile.config.locale and ctx.config.locale == DEFAULTS["locale"]:
         ctx.config.locale = ctx.profile.config.locale
+
       if ctx.profile.config.repository and ctx.config.repository == DEFAULTS["repository"]:
         ctx.config.repository = ctx.profile.config.repository
 
@@ -264,6 +278,7 @@ def main() -> None:
       print()
       info("Dry run completed successfully!")
       info("Run without --dry flag to perform actual installation.")
+
     else:
       print()
       info("Installation completed successfully!")
@@ -277,10 +292,12 @@ def main() -> None:
 if __name__ == "__main__":
   try:
     main()
+
   except KeyboardInterrupt:
     print()
     print(f"{red}Installation interrupted. Exiting...{reset}")
     sys.exit(130)
+
   except Exception as e:
     error(f"Fatal error: {e}")
     sys.exit(1)

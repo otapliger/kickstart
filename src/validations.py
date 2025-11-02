@@ -8,19 +8,15 @@ for validating URLs, timezones, locales, hostnames, profiles, and JSON data.
 import re
 import urllib.parse
 from pathlib import Path
-from typing import Any, TypedDict
-
-
-class MirrorData(TypedDict):
-  url: str
-  region: str
-  location: str
+from typing import Any
+from src.types import MirrorData
 
 
 def validate_url(url: str) -> bool:
   """Validate that a URL is properly formatted."""
   if not url:
     return False
+
   result = urllib.parse.urlparse(url)
   return bool(result.scheme and result.netloc)
 
@@ -29,12 +25,15 @@ def validate_timezone(timezone: str) -> bool:
   """Validate timezone against common timezone patterns."""
   if "/" not in timezone:
     return False
+
   parts = timezone.split("/")
   if len(parts) != 2:
     return False
+
   region, city = parts
   if not region.replace("_", "").isalpha() or not city.replace("_", "").isalpha():
     return False
+
   return True
 
 
@@ -63,14 +62,18 @@ def validate_hostname(hostname: str) -> bool:
   """Validate hostname format according to RFC 1123."""
   if not hostname or len(hostname) > 253:
     return False
+
   labels = hostname.split(".")
   for label in labels:
     if not label or len(label) > 63:
       return False
+
     if not (label[0].isalnum() and label[-1].isalnum()):
       return False
+
     if not all(c.isalnum() or c == "-" for c in label):
       return False
+
   return True
 
 
@@ -78,6 +81,7 @@ def validate_profile(source: str) -> bool:
   """Validate profile source path or URL. Returns True if valid, False if invalid."""
   if source.startswith(("http://", "https://")):
     return True
+
   else:
     return Path(source).exists()
 
@@ -116,8 +120,10 @@ def validate_profile_json(data: dict[str, object]) -> list[str]:
   if isinstance(packages, dict):
     for field in ["additional", "exclude"]:
       value = packages.get(field)
+
       if value is not None and not isinstance(value, list):
         issues.append(f"packages.{field} must be a list")
+
       elif isinstance(value, list) and not all(isinstance(item, str) for item in value):
         issues.append(f"packages.{field} must be a list of strings")
 
@@ -128,12 +134,15 @@ def validate_defaults_json(data: Any) -> dict[str, Any]:
   """Validate and return defaults JSON data with proper typing."""
   if not isinstance(data, dict):
     raise ValueError("Defaults JSON must be an object")
+
   required_keys = {"repository", "timezone", "locale", "keymap", "libc", "ntp"}
   missing_keys = required_keys - data.keys()
   if missing_keys:
     raise KeyError(f"Missing required keys: {missing_keys}")
+
   if not isinstance(data["ntp"], list):
     raise ValueError("ntp field must be a list")
+
   return data
 
 
@@ -141,11 +150,14 @@ def validate_mirrors_json(data: Any) -> list[MirrorData]:
   """Validate and return mirrors JSON data with proper typing."""
   if not isinstance(data, list):
     raise ValueError("Mirrors JSON must be an array")
+
   for item in data:
     if not isinstance(item, dict):
       raise ValueError("Each mirror must be an object")
+
     if not all(key in item for key in ["url", "region", "location"]):
       raise ValueError("Each mirror must have url, region, and location fields")
+
   return data
 
 
@@ -172,8 +184,10 @@ def validate_config_json(data: Any, distro_id: str) -> None:
   # Validate distro exists in each section
   if distro_id not in data["defaults"]:
     raise KeyError(f"Distro '{distro_id}' not found in defaults section")
+
   if distro_id not in data["mirrors"]:
     raise KeyError(f"Distro '{distro_id}' not found in mirrors section")
+
   if distro_id not in data["packages"]:
     raise KeyError(f"Distro '{distro_id}' not found in packages section")
 
@@ -186,6 +200,7 @@ def validate_config_json(data: Any, distro_id: str) -> None:
   # Validate packages structure
   if not isinstance(data["packages"][distro_id], list):
     raise ValueError(f"Packages for '{distro_id}' must be a list")
+
   if not all(isinstance(pkg, str) for pkg in data["packages"][distro_id]):
     raise ValueError(f"All packages for '{distro_id}' must be strings")
 
