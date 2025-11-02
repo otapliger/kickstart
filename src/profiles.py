@@ -205,34 +205,17 @@ class ProfileLoader:
       )
 
       with urllib.request.urlopen(req, timeout=10) as response:
-        if hasattr(response, "status"):
-          status_code = response.status
-
-        elif hasattr(response, "code"):
-          status_code = response.code
-
-        else:
-          status_code = 200
+        status_code = getattr(response, "status", getattr(response, "code", 200))
 
         if status_code != 200:
-          if hasattr(response, "reason"):
-            reason = response.reason
-
-          else:
-            reason = "Unknown error"
-
+          reason = getattr(response, "reason", "Unknown error")
           raise ValueError(f"HTTP {status_code}: {reason}")
 
-        content_type = ""
-        if hasattr(response, "headers") and hasattr(response.headers, "get"):
-          content_type = response.headers.get("Content-Type", "")
-
+        content_type = response.headers.get("Content-Type", "")
         if content_type and "application/json" not in content_type and "text/json" not in content_type:
           print(f"{yellow}Warning: Server returned Content-Type '{content_type}', expected JSON{reset}")
 
-        data_bytes = response.read()
-        data_str = data_bytes.decode("utf-8")
-        parsed_data = json.loads(data_str)
+        parsed_data = json.loads(response.read().decode("utf-8"))
 
         if not isinstance(parsed_data, dict):
           raise ValueError("Profile JSON must be an object")
