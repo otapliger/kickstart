@@ -300,4 +300,13 @@ class FixedHeader:
     self._cleanup_signal_handler()
     self._cleanup_output_interceptor()
     self._cleanup_status_line()
+
+    # Clear step output to prevent ghosting
+    self.step_output = []
+
+    # Clear screen and reset to clean state
+    write_sequence(sys.stdout, CLEAR_SCREEN)
+    write_sequence(sys.stdout, MOVE_HOME)
+    write_sequence(sys.stdout, SHOW_CURSOR)
+    _ = sys.stdout.flush()
     self.initialized = False

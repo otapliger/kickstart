@@ -23,7 +23,7 @@ from src.utils import (
 )
 
 
-def step_01_settings(ctx: InstallerContext) -> None:
+def step_01_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
   defaults = load_defaults(ctx.distro_id)
 
   config_items = [
@@ -96,7 +96,7 @@ def step_01_settings(ctx: InstallerContext) -> None:
   ctx.root = f"/dev/mapper/{ctx.host}"
 
 
-def step_02_disk_setup(ctx: InstallerContext) -> None:
+def step_02_disk_setup(ctx: InstallerContext, _warnings: list[str]) -> None:
   cmd(f"wipefs -af {ctx.disk}", ctx.dry)
   cmd(f"sgdisk -Zo {ctx.disk}", ctx.dry)
   cmd(f"parted -s {ctx.disk} mklabel gpt", ctx.dry)
@@ -136,8 +136,8 @@ def step_02_disk_setup(ctx: InstallerContext) -> None:
   cmd(f"mount {ctx.esp} /mnt/boot/efi", ctx.dry)
 
 
-def step_03_system_bootstrap(ctx: InstallerContext) -> None:
-  distro = get_distro(ctx.distro_id)
+def step_03_system_bootstrap(ctx: InstallerContext, _warnings: list[str]) -> None:
+  distro = get_distro(ctx.distro_id, ctx.dry)
 
   for prep_cmd in distro.prepare_base_system():
     cmd(prep_cmd, ctx.dry)
@@ -146,7 +146,7 @@ def step_03_system_bootstrap(ctx: InstallerContext) -> None:
   cmd(distro.install_base_system(base_pkgs, ctx.repository), ctx.dry)
 
 
-def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None:
+def step_04_system_installation_and_configuration(ctx: InstallerContext, warnings: list[str]) -> None:
   efi_uuid = (
     "DRY-RUN-EFI-UUID"
     if ctx.dry
@@ -198,7 +198,7 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
   write(sudoers_entries, "/mnt/etc/sudoers", ctx.dry)
 
   defaults = load_defaults(ctx.distro_id)
-  distro = get_distro(ctx.distro_id)
+  distro = get_distro(ctx.distro_id, ctx.dry)
 
   # fmt: off
   write([f"{ctx.host}"], "/mnt/etc/hostname", ctx.dry)
@@ -216,11 +216,12 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
     cmd(distro.reconfigure_locale(), ctx.dry)
 
   generate_chroot(
-    path="/mnt/root/chroot.sh",
-    ctx=ctx,
-    luks_pass=ctx.luks_pass or "",
-    distro_name=ctx.distro_name,
-    dry_run=ctx.dry,
+    "/mnt/root/chroot.sh",
+    ctx,
+    ctx.luks_pass or "",
+    ctx.distro_name,
+    ctx.dry,
+    warnings,
   )
 
   cmd("cp /etc/resolv.conf /mnt/etc", ctx.dry)
@@ -235,7 +236,7 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
   scmd(f"chroot /mnt passwd {ctx.user_name}", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry)
 
 
-def step_05_cleanup(ctx: InstallerContext) -> None:
+def step_05_cleanup(ctx: InstallerContext, _warnings: list[str]) -> None:
   cmd("rm -rf /mnt/root/chroot.sh", ctx.dry)
   cmd("umount --recursive /mnt", ctx.dry)
   print()
@@ -243,7 +244,28 @@ def step_05_cleanup(ctx: InstallerContext) -> None:
   info("Installation completed. You can now reboot your system.")
 
 
-install: list[Callable[[InstallerContext], None]] = [
+def get_install_steps(ctx: InstallerContext) -> list[Callable[[InstallerContext, list[str]], None]]:
+  """Get installation steps, skipping bootstrap and config for generic distro."""
+  all_steps = [
+    step_01_settings,
+    step_02_disk_setup,
+    step_03_system_bootstrap,
+    step_04_system_installation_and_configuration,
+    step_05_cleanup,
+  ]
+
+  # Skip system bootstrap and configuration for generic distro
+  if ctx.distro_id == "linux":
+    return [
+      step_01_settings,
+      step_02_disk_setup,
+      step_05_cleanup,
+    ]
+
+  return all_steps
+
+
+install: list[Callable[[InstallerContext, list[str]], None]] = [
   step_01_settings,
   step_02_disk_setup,
   step_03_system_bootstrap,

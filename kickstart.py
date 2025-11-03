@@ -5,8 +5,8 @@ import os
 import sys
 from pathlib import Path
 from typing import override
-from src.ansi_codes import red, reset, yellow
-from src.steps import install
+from src.ansi_codes import red, reset, yellow, bold
+from src.steps import get_install_steps
 from src.header import FixedHeader
 from src.utils import error, info, load_defaults, get_distro_info, format_step_name
 from src.types import DefaultsConfig, ContextConfig
@@ -173,11 +173,12 @@ def _create_context_config(args: Namespace) -> ContextConfig:
   )
 
 
-def _run_installation(ctx: InstallerContext, header: FixedHeader) -> None:
+def _run_installation(ctx: InstallerContext, header: FixedHeader, warnings: list[str]) -> None:
   """Run the installation process with proper error handling."""
-  total_steps = len(install)
+  steps = get_install_steps(ctx)
+  total_steps = len(steps)
 
-  for i, step in enumerate(install, 1):
+  for i, step in enumerate(steps, 1):
     step_name = format_step_name(step.__name__)
 
     # Clear cached output from previous step
@@ -190,7 +191,7 @@ def _run_installation(ctx: InstallerContext, header: FixedHeader) -> None:
     header.update_status(f"{progress_bar} {step_name} · Step {i}/{total_steps}")
 
     try:
-      step(ctx)
+      step(ctx, warnings)
 
     except KeyboardInterrupt:
       header.cleanup()
@@ -231,6 +232,8 @@ def main() -> None:
     ("Linux", "linux") if not Path("/etc/os-release").exists() and is_dry_mode else get_distro_info()
   )
 
+  # Collect warnings during dry mode to display at the end
+  warnings: list[str] = []
   defaults = load_defaults(distro_id)
   parser = _create_argument_parser(defaults)
   config = _create_context_config(parser.parse_args())
@@ -302,17 +305,32 @@ def main() -> None:
   ctx.header = FixedHeader()
 
   try:
-    _run_installation(ctx, ctx.header)
+    _run_installation(ctx, ctx.header, warnings)
 
     if config.dry:
-      print()
+      print("\n")
+      sys.stdout.flush()
+
+      # Display collected warnings
+      if warnings:
+        print(f"{yellow}{bold}Warnings encountered during dry run:{reset}")
+        for warning in warnings:
+          print(f" • {warning}")
+        print()
+        sys.stdout.flush()
+
       info("Dry run completed successfully!")
       info("Run without --dry flag to perform actual installation.")
+      print()
+      sys.stdout.flush()
 
     else:
-      print()
+      print("\n")
+      sys.stdout.flush()
       info("Installation completed successfully!")
       info("You can now reboot your system.")
+      print()
+      sys.stdout.flush()
 
   except Exception as e:
     error(f"Unexpected error during installation: {e}")

@@ -1,18 +1,5 @@
 {
   "defaults": {
-    "linux": {
-      "repository": "https://example.com/repo",
-      "timezone": "Europe/London",
-      "locale": "en_GB.UTF-8",
-      "keymap": "uk",
-      "libc": "glibc",
-      "ntp": [
-        "0.europe.pool.ntp.org",
-        "1.europe.pool.ntp.org",
-        "2.europe.pool.ntp.org",
-        "3.europe.pool.ntp.org"
-      ]
-    },
     "void": {
       "repository": "https://repo-fastly.voidlinux.org/current",
       "timezone": "Europe/London",
@@ -28,13 +15,6 @@
     }
   },
   "mirrors": {
-    "linux": [
-      {
-        "url": "https://example.com/repo",
-        "region": "Global",
-        "location": "Generic Mirror"
-      }
-    ],
     "void": [
       {
         "url": "https://repo-fastly.voidlinux.org/current",
@@ -59,7 +39,6 @@
     ]
   },
   "packages": {
-    "linux": ["tux", "fish"],
     "void": [
       "bat",
       "cmake",
@@ -75,12 +54,6 @@
     ]
   },
   "gpu_packages": {
-    "linux": {
-      "amd": [],
-      "intel": [],
-      "nvidia": [],
-      "unknown": []
-    },
     "void": {
       "amd": [
         "mesa-dri",

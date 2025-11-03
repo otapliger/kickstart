@@ -2,7 +2,7 @@ import os
 import subprocess
 import json
 from src.ansi_codes import gray, reset
-from src.utils import info, error, detect_gpu_vendors, get_gpu_packages
+from src.utils import info, detect_gpu_vendors, get_gpu_packages
 from src.context import InstallerContext
 from src.distros import get_distro
 from textwrap import dedent
@@ -14,8 +14,8 @@ def _section_header() -> str:
   """)
 
 
-def _section_luks_key_setup(crypt_uuid: str, luks_pass: str, distro_id: str) -> str:
-  distro = get_distro(distro_id)
+def _section_luks_key_setup(crypt_uuid: str, luks_pass: str, distro_id: str, dry_mode: bool) -> str:
+  distro = get_distro(distro_id, dry_mode)
   return distro.initramfs_config(crypt_uuid, luks_pass)
 
 
@@ -36,21 +36,20 @@ def _section_grub_install(crypt_uuid: str, distro_name: str) -> str:
   """)
 
 
-def _get_package_list(ctx: InstallerContext) -> list[str]:
+def _get_package_list(ctx: InstallerContext, warnings: list[str]) -> list[str]:
   """Get final package list based on profile configuration and GPU detection."""
   config_file = os.path.join(os.path.dirname(__file__), "../config.json")
-  try:
-    with open(config_file) as f:
-      config_data = json.load(f)
-      if "packages" not in config_data or ctx.distro_id not in config_data["packages"]:
-        error(f"No packages found for distro '{ctx.distro_id}' in config.json")
-        return []
-      default_pkgs: list[str] = config_data["packages"][ctx.distro_id]
-  except (FileNotFoundError, json.JSONDecodeError) as e:
-    error(f"Error loading packages from config.json: {e}")
-    return []
+  with open(config_file) as f:
+    config_data = json.load(f)
+    if "packages" not in config_data or ctx.distro_id not in config_data["packages"]:
+      return []
+    default_pkgs: list[str] = config_data["packages"][ctx.distro_id]
 
-  gpu_packages = get_gpu_packages(ctx.distro_id, detect_gpu_vendors())
+  gpu_packages = get_gpu_packages(
+    ctx.distro_id,
+    detect_gpu_vendors(warnings if ctx.dry else None),
+    warnings if ctx.dry else None,
+  )
   profile_pkgs = ctx.profile.packages if ctx.profile else None
 
   # fmt: off
@@ -64,18 +63,18 @@ def _get_package_list(ctx: InstallerContext) -> list[str]:
   return sorted(final_pkgs)
 
 
-def _section_install_packages(ctx: InstallerContext) -> str:
-  pkgs_list = _get_package_list(ctx)
+def _section_install_packages(ctx: InstallerContext, warnings: list[str]) -> str:
+  pkgs_list = _get_package_list(ctx, warnings)
   if not pkgs_list:
     return ""
 
-  distro = get_distro(ctx.distro_id)
+  distro = get_distro(ctx.distro_id, ctx.dry)
   return distro.install_packages(pkgs_list, ctx.repository)
 
 
 def _section_post_install(ctx: InstallerContext) -> str:
   commands = []
-  distro = get_distro(ctx.distro_id)
+  distro = get_distro(ctx.distro_id, ctx.dry)
 
   reconfigure_cmd = distro.reconfigure_system()
   if reconfigure_cmd:
@@ -107,11 +106,7 @@ def _section_post_install(ctx: InstallerContext) -> str:
 
 
 def generate_chroot(
-  path: str,
-  ctx: InstallerContext,
-  luks_pass: str,
-  distro_name: str,
-  dry_run: bool = False,
+  path: str, ctx: InstallerContext, luks_pass: str, distro_name: str, dry_run: bool, warnings: list[str]
 ) -> None:
   crypt_uuid = (
     "MOCK-CRYPT-UUID"
@@ -126,14 +121,14 @@ def generate_chroot(
   )
   parts: list[str] = [
     _section_header(),
-    _section_luks_key_setup(crypt_uuid, luks_pass, ctx.distro_id),
+    _section_luks_key_setup(crypt_uuid, luks_pass, ctx.distro_id, ctx.dry),
     _section_grub_install(crypt_uuid, distro_name),
-    _section_install_packages(ctx),
+    _section_install_packages(ctx, warnings),
     _section_post_install(ctx),
   ]
   if dry_run:
     info(f"{gray}[DRY RUN] Generated chroot script:{reset}")
-    print("\n".join(parts))
+    info(f"{gray}{'\n'.join(parts)}{reset}")
   else:
     with open(path, "w") as f:
       _ = f.write("\n".join(parts))

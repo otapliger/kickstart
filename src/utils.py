@@ -162,15 +162,21 @@ def set_luks() -> str:
     return luks_pass
 
 
-def load_defaults(distro_id: str = "void") -> DefaultsConfig:
+def load_defaults(distro_id: str) -> DefaultsConfig:
   """Load default values from config.json file for specified distro."""
   config_file = os.path.join(os.path.dirname(__file__), "../config.json")
   try:
     with open(config_file, "r") as f:
       config_data = json.load(f)
       if "defaults" not in config_data or distro_id not in config_data["defaults"]:
-        error(f"No defaults found for distro '{distro_id}' in config.json")
-        sys.exit(1)
+        return DefaultsConfig(
+          repository="https://example.com/repo",
+          timezone="Europe/London",
+          locale="en_GB.UTF-8",
+          keymap="uk",
+          libc="glibc",
+          ntp=["0.pool.ntp.org", "1.pool.ntp.org", "2.pool.ntp.org", "3.pool.ntp.org"],
+        )
 
       defaults_data = config_data["defaults"][distro_id]
       data = validate_defaults_json(defaults_data)
@@ -191,7 +197,7 @@ def load_defaults(distro_id: str = "void") -> DefaultsConfig:
     sys.exit(1)
 
 
-def load_mirrors(distro_id: str = "void") -> list[tuple[str, str, str]]:
+def load_mirrors(distro_id: str) -> list[tuple[str, str, str]]:
   """Load mirrors from config.json file for specified distro and return as list of (url, region, location) tuples."""
   config_file = os.path.join(os.path.dirname(__file__), "../config.json")
 
@@ -199,8 +205,7 @@ def load_mirrors(distro_id: str = "void") -> list[tuple[str, str, str]]:
     with open(config_file, "r") as f:
       config_data = json.load(f)
       if "mirrors" not in config_data or distro_id not in config_data["mirrors"]:
-        error(f"No mirrors found for distro '{distro_id}' in config.json")
-        sys.exit(1)
+        return [("https://example.com/repo", "Global", "Generic Mirror")]
 
       mirrors_data = config_data["mirrors"][distro_id]
       data = validate_mirrors_json(mirrors_data)
@@ -218,7 +223,7 @@ def load_mirrors(distro_id: str = "void") -> list[tuple[str, str, str]]:
   return mirrors
 
 
-def set_mirror(distro_id: str = "void") -> str:
+def set_mirror(distro_id: str) -> str:
   """Allow user to select a mirror for the specified distro."""
   default_repository = load_defaults(distro_id)["repository"]
   mirrors = load_mirrors(distro_id)
@@ -305,9 +310,12 @@ def get_distro_info(file_path: str = "/etc/os-release") -> tuple[str, str]:
     sys.exit(1)
 
 
-def detect_gpu_vendors() -> list[GPUVendor]:
+def detect_gpu_vendors(warnings: list[str] | None = None) -> list[GPUVendor]:
   """
   Detect GPU vendors present in the system by examining lspci output.
+
+  Args:
+      warnings: Optional list to collect warnings instead of printing them
 
   Returns:
       List of GPUVendor enums representing detected GPUs
@@ -316,7 +324,11 @@ def detect_gpu_vendors() -> list[GPUVendor]:
     result = subprocess.run(["lspci", "-nn"], capture_output=True, text=True, check=False)
 
     if result.returncode != 0:
-      info(f"{yellow}Warning: lspci command failed (exit code {result.returncode}). Unable to detect GPU.{reset}")
+      warning_msg = f"lspci command failed (exit code {result.returncode}). Unable to detect GPU."
+      if warnings is not None:
+        warnings.append(warning_msg)
+      else:
+        info(f"{yellow}Warning: {warning_msg}{reset}")
       return [GPUVendor.UNKNOWN]
 
     output = result.stdout.lower()
@@ -338,15 +350,25 @@ def detect_gpu_vendors() -> list[GPUVendor]:
     return vendors or [GPUVendor.UNKNOWN]
 
   except FileNotFoundError:
-    info(f"{yellow}Warning: Install pciutils to enable GPU detection{reset}")
+    warning_msg = "Install pciutils to enable GPU detection"
+    if warnings is not None:
+      warnings.append(warning_msg)
+    else:
+      info(f"{yellow}Warning: {warning_msg}{reset}")
     return [GPUVendor.UNKNOWN]
 
   except Exception as e:
-    info(f"{yellow}Warning: Unexpected error detecting GPU - {e}{reset}")
+    warning_msg = f"Unexpected error detecting GPU - {e}"
+    if warnings is not None:
+      warnings.append(warning_msg)
+    else:
+      info(f"{yellow}Warning: {warning_msg}{reset}")
     return [GPUVendor.UNKNOWN]
 
 
-def get_gpu_packages(distro_id: str, vendors: list[GPUVendor] | None = None) -> list[str]:
+def get_gpu_packages(
+  distro_id: str, vendors: list[GPUVendor] | None = None, warnings: list[str] | None = None
+) -> list[str]:
   """
   Get the appropriate GPU driver packages for a distro based on detected vendors.
 
@@ -358,27 +380,20 @@ def get_gpu_packages(distro_id: str, vendors: list[GPUVendor] | None = None) -> 
       List of package names for the detected GPU vendors
   """
   if vendors is None:
-    vendors = detect_gpu_vendors()
+    vendors = detect_gpu_vendors(warnings)
 
   config_file = os.path.join(os.path.dirname(__file__), "../config.json")
 
-  try:
-    with open(config_file, "r") as f:
-      config_data = json.load(f)
+  with open(config_file, "r") as f:
+    config_data = json.load(f)
 
-      if "gpu_packages" not in config_data:
-        info(f"{yellow}Warning: No 'gpu_packages' section in config.json{reset}")
-        return []
+    if "gpu_packages" not in config_data:
+      return []
 
-      if distro_id not in config_data["gpu_packages"]:
-        info(f"{yellow}Warning: No GPU packages defined for distro '{distro_id}'{reset}")
-        return []
+    if distro_id not in config_data["gpu_packages"]:
+      return []
 
-      gpu_config = config_data["gpu_packages"][distro_id]
-
-  except (FileNotFoundError, json.JSONDecodeError) as e:
-    info(f"{yellow}Warning: Error loading GPU packages from config.json: {e}{reset}")
-    return []
+    gpu_config = config_data["gpu_packages"][distro_id]
 
   vendor_key_map = {
     GPUVendor.INTEL: "intel",
