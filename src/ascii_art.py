@@ -1,49 +1,56 @@
 from src.ansi_codes import bold, green, white, blue, reset, yellow
 
-linux: str = f"""{white}
-     ___
-    |.. |
-    |{yellow}<> {white}|
-   / __  \\
-  ( /  \\ /|
- {yellow}_{white}/\\ __{white})/{yellow}_{white})
- {yellow}\\/{white}-____{yellow}\\/{bold}{white}
-
-█▄▀ █ █▀▀ █▄▀ █▀ ▀█▀ ▄▀█ █▀█ ▀█▀
-█░█ █ █▄▄ █░█ ▄█  █  █▀█ █▀▄  █
-{yellow}Linux installer, simplified.{reset}"""
-
-arch: str = f"""{bold}{blue}
+# ============================================================================
+# Distros
+# ============================================================================
+# ARCH LINUX
+_arch_logo: str = f"""{bold}{blue}
        /\\
       /  \\
      /\\   \\
     /      \\
    /   ,,   \\
   /   |  |  -\\
- /_-''    ''-_\\{bold}{white}
+ /_-''    ''-_\\{reset}"""
 
-█▄▀ █ █▀▀ █▄▀ █▀ ▀█▀ ▄▀█ █▀█ ▀█▀
-█░█ █ █▄▄ █░█ ▄█  █  █▀█ █▀▄  █
-{blue}Arch Linux installer, simplified.{reset}"""
-
-void: str = f"""{bold}{green}
+# ============================================================================
+# VOID LINUX
+_void_logo: str = f"""{bold}{green}
      _______
   _ \\______ -
  | \\  ___  \\ |
  | | /   \\ | |
  | | \\___/ | |
  | \\______ \\_|
-  -_______\\{bold}{white}
+  -_______\\{reset}"""
 
+# ============================================================================
+# TUX ASCII art
+# ============================================================================
+_linux_logo: str = f"""{white}
+     ___
+    |.. |
+    |{yellow}<> {white}|
+   / __  \\
+  ( /  \\ /|
+ {yellow}_{white}/\\ __{white})/{yellow}_{white})
+ {yellow}\\/{white}-____{yellow}\\/{reset}"""
+
+# ============================================================================
+# KICKSTART ASCII art
+# ============================================================================
+_kickstart_text: str = f"""{bold}{white}
 █▄▀ █ █▀▀ █▄▀ █▀ ▀█▀ ▄▀█ █▀█ ▀█▀
-█░█ █ █▄▄ █░█ ▄█  █  █▀█ █▀▄  █
-{green}Void Linux installer, simplified.{reset}"""
+█░█ █ █▄▄ █░█ ▄█  █  █▀█ █▀▄  █{reset}"""
+
+
+def _buid_kickstart_logo(logo: str, tagline_color: str, tagline_text: str) -> str:
+  return f"{logo}\n{_kickstart_text}\n{tagline_color}{tagline_text}{reset}"
 
 
 def print_logo(distro_id: str) -> None:
   logos = {
-    "linux": linux,
-    "arch": arch,
-    "void": void,
+    "arch": _buid_kickstart_logo(_arch_logo, blue, "Arch Linux installer, simplified."),
+    "void": _buid_kickstart_logo(_void_logo, green, "Void Linux installer, simplified."),
   }
-  print(logos.get(distro_id, linux))
+  print(logos.get(distro_id, _buid_kickstart_logo(_linux_logo, yellow, "Linux installer, simplified.")))
