@@ -1,54 +1,115 @@
 # kickstart
 
-Automated installer for supported Linux distros with encrypted BTRFS and sensible defaults.
+Automated installer for Linux distributions with encrypted BTRFS and sensible defaults.
 
 > **WARNING**: This installer is DESTRUCTIVE and will wipe the selected disk. Always use `--dry` first.
 
+## Supported Distros
+
+- **Void Linux** (glibc/musl)
+- **Arch Linux**
+
+## Quick Start
+
+```bash
+# Preview installation (recommended)
+python3 kickstart.py --dry
+
+# Install with defaults
+sudo python3 kickstart.py
+
+# Custom configuration
+sudo python3 kickstart.py --libc musl --keymap colemak
+
+# Use a profile
+sudo python3 kickstart.py -p ./profiles/void/minimal.json
+```
+
+## Interface
+
+```
+┌─────────────────────────────────────┐
+│ Logo (ASCII Art)                    │ Fixed Header
+│ DRY RUN MODE (if applicable)        │
+│                                     │
+│ [▓▓▓▓░░░░░░] Settings · Step 1/5    │ ← Status Bar
+│                                     │
+├─────────────────────────────────────┤
+│                                     │ ↕
+│ Skipping root and system checks...  │ │
+│                                     │ │
+│ • C library: glibc                  │ │
+│ • Keymap: uk                        │ │
+│ • Locale: en_GB.UTF-8               │ │
+│ • Timezone: Europe/London           │ │ Scrolling
+│                                     │ │ Content
+│ Choose a hostname: linux            │ │
+│                                     │ │
+│ Disks:                              │ │
+│   1. /dev/nvme0n1                   │ │
+│   ...                               │ │
+│                                     │ ↕
+└─────────────────────────────────────┘
+```
+
 ## Features
 
-- Encrypted LUKS1-on-BTRFS root filesystem
-- EFI boot with GRUB
-- BTRFS subvolumes: `@`, `@home`, `@snapshots`, `@var_cache`, `@var_log`
-- Curated package selection
-- User creation with proper groups and shell setup
-
-## Usage
-
-**Dry run first (recommended):**
-```bash
-python3 kickstart.py -d
-```
-
-**Install:**
-```bash
-sudo python3 kickstart.py
-```
+- **Encryption**: LUKS1-on-BTRFS root filesystem
+- **Boot**: EFI with GRUB
+- **Subvolumes**: `@`, `@home`, `@snapshots`, `@var_cache`, `@var_log`
+- **Packages**: Curated selection with GPU driver detection
+- **Profiles**: JSON-based configurations (local files or URLs)
 
 ## Options
 
-- `-d, --dry` – Preview mode (no changes made)
-- `-p, --profile <SOURCE>` – Load profile from local file or HTTP URL
-- `--libc <LIBC>` – C library implementation (glibc or musl)
-- `-r, --repository <URL>` – Override mirror selection with specific repository URL
-- `-t, --timezone <TIMEZONE>` – System timezone in Region/City format
-- `--locale <LOCALE>` – System locale
-- `-k, --keymap <KEYMAP>` – Keyboard layout
-- `--hostname <HOSTNAME>` – System hostname
-- `--version` – Show version and exit
+```
+-d, --dry              Preview mode (no changes)
+-p, --profile SOURCE   Load profile from file or URL
+-r, --repository URL   Override mirror selection
+-k, --keymap KEYMAP    Keyboard layout
+-t, --timezone TZ      System timezone (Region/City)
+--hostname NAME        System hostname
+--locale LOCALE        System locale
+--libc LIBC            C library (glibc/musl)
+--version              Show version
+```
 
 ## Profiles
 
-Load configurations from local files or URLs:
+Profiles are JSON files that define installation configurations:
+
 ```bash
-sudo python3 kickstart.py -p ./profiles/minimal.json
+# Local profile
+sudo python3 kickstart.py -p ./profiles/void/minimal.json
+
+# Remote profile
 sudo python3 kickstart.py -p https://example.com/profile.json
+```
+
+Example profile structure:
+
+```json
+{
+  "name": "Minimal System",
+  "description": "Bare minimum installation",
+  "version": "1.0",
+  "distro": "void",
+  "config": {
+    "libc": "glibc",
+    "timezone": "Europe/London",
+    "keymap": "uk",
+    "locale": "en_GB.UTF-8"
+  },
+  "packages": {
+    "additional": ["vim", "tmux"],
+    "exclude": ["fish-shell"]
+  }
+}
 ```
 
 ## Configuration
 
-- `config/void/defaults.json` – System defaults
-- `config/void/pkgs.json` – Package lists
-- `config/void/mirrors.json` – Mirror information
+The installer uses `config.json` for defaults, mirrors, and package lists per distro.
 
 ## Safety
 
