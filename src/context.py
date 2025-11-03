@@ -1,6 +1,7 @@
 from __future__ import annotations
 from src.profiles import InstallationProfile
 from src.types import ContextConfig
+from src.header import FixedHeader
 
 
 class InstallerContext:
@@ -32,6 +33,9 @@ class InstallerContext:
     self.cryptroot: str | None = None
     self.esp: str | None = None
     self.root: str | None = None
+
+    # UI components
+    self.header: FixedHeader | None = None
 
   @property
   def dry(self) -> bool:

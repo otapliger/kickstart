@@ -4,6 +4,7 @@ import getpass
 import sys
 import re
 import json
+from io import StringIO
 from operator import itemgetter
 from src.ansi_codes import green, red, reset, gray, yellow
 from src.validations import validate_defaults_json, validate_mirrors_json
@@ -417,3 +418,44 @@ def print_detected_gpus(vendors: list[GPUVendor]) -> None:
       print("  - AMD GPU")
     elif vendor == GPUVendor.NVIDIA:
       print("  - NVIDIA GPU")
+
+
+def collect_header_lines(distro_id: str, dry_mode: bool = False) -> list[str]:
+  """
+  Collect all header content (logo, dry run message) into a list of lines.
+
+  Args:
+      distro_id: Distribution identifier for logo selection
+      dry_mode: Whether dry run mode is enabled
+
+  Returns:
+      List of strings representing each line of the header
+  """
+  from src.ascii_art import print_logo
+  from src.ansi_codes import bold
+
+  lines = []
+  last_stdout = sys.stdout
+  sys.stdout = StringIO()
+  print_logo(distro_id)
+  logo_output = sys.stdout.getvalue()
+  sys.stdout = last_stdout
+  lines.extend(logo_output.rstrip("\n").split("\n"))
+
+  if dry_mode:
+    lines.append(f"{yellow}{bold}DRY RUN MODE{reset} - No actual changes will be made to your system")
+
+  return lines
+
+
+def format_step_name(name: str) -> str:
+  """
+  Format step name from function name string.
+
+  Args:
+      name: Step function name
+
+  Returns:
+      Formatted step name (e.g., "Settings")
+  """
+  return name.replace("step_", "").replace("_", " ").title().lstrip("0123456789 ")

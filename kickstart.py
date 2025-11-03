@@ -5,11 +5,10 @@ import os
 import sys
 from pathlib import Path
 from typing import override
-from src.ansi_codes import red, reset, yellow, bold, green
-from src.ascii_art import print_logo
+from src.ansi_codes import red, reset, yellow
 from src.steps import install
-from src.status import StatusLine
-from src.utils import error, info, load_defaults, get_distro_info
+from src.header import FixedHeader
+from src.utils import error, info, load_defaults, get_distro_info, format_step_name
 from src.types import DefaultsConfig, ContextConfig
 from src.context import InstallerContext
 from src.profiles import ProfileLoader
@@ -174,43 +173,42 @@ def _create_context_config(args: Namespace) -> ContextConfig:
   )
 
 
-def _run_installation(ctx: InstallerContext) -> None:
+def _run_installation(ctx: InstallerContext, header: FixedHeader) -> None:
   """Run the installation process with proper error handling."""
   total_steps = len(install)
-  status_line = StatusLine()
 
   for i, step in enumerate(install, 1):
-    step_name = step.__name__.replace("step_", "").replace("_", " ").title().lstrip("0123456789 ")
+    step_name = format_step_name(step.__name__)
 
     # Status line
     filled = "▓▓" * i
     empty = "░░" * (total_steps - i)
     progress_bar = f"[{filled}{empty}]"
-    status_line.update(f"{progress_bar} {step_name} · Step {i}/{total_steps}")
+    header.update_status(f"{progress_bar} {step_name} · Step {i}/{total_steps}")
 
     try:
       step(ctx)
 
     except KeyboardInterrupt:
-      status_line.clear()
+      header.cleanup()
       print()
       print(f"{red}Installation interrupted by user. Exiting...{reset}")
       sys.exit(130)
 
     except FileNotFoundError as e:
-      status_line.clear()
+      header.cleanup()
       error(f"Required file or directory not found: {e}")
       error("This might indicate a system configuration issue.")
       sys.exit(4)
 
     except PermissionError as e:
-      status_line.clear()
+      header.cleanup()
       error(f"Permission denied: {e}")
       error("Make sure you're running as root and have proper permissions.")
       sys.exit(5)
 
     except Exception as e:
-      status_line.clear()
+      header.cleanup()
       error(f"Step '{step_name}' failed with error: {e}")
       error("Installation cannot continue.")
       if ctx.dry:
@@ -218,14 +216,11 @@ def _run_installation(ctx: InstallerContext) -> None:
       sys.exit(1)
 
   # Clear status line when installation completes
-  status_line.clear()
+  header.cleanup()
 
 
 def main() -> None:
   """Main entry point for the installer."""
-  # Clear the screen
-  print("\033[2J\033[H", end="")
-
   # When in dry mode and /etc/os-release is missing, default to Linux
   # This allows testing in non-Linux environments
   is_dry_mode = "--dry" in sys.argv or "-d" in sys.argv
@@ -250,11 +245,6 @@ def main() -> None:
       error(f"Failed to load profile: {e}")
       sys.exit(1)
 
-  print_logo(distro_id)
-
-  if config.dry:
-    print(f"{yellow}{bold}DRY RUN MODE{reset} - No actual changes will be made to your system")
-
   errors = validate_cli_arguments(
     repository=config.repository,
     timezone=config.timezone,
@@ -270,20 +260,14 @@ def main() -> None:
     print(f"\n{yellow}Use --help for valid options{reset}")
     sys.exit(1)
 
-  print()
-
   if not config.dry:
     _check_system_requirements()
-
-  else:
-    info("Skipping root and system checks in dry run mode")
 
   ctx = InstallerContext(config)
   ctx.distro_name = distro_name
   ctx.distro_id = distro_id
 
   if config.profile:
-    info(f"Successfully loaded profile: {green}{config.profile}{reset}")
     if profile:
       ctx.profile = profile
     else:
@@ -312,9 +296,10 @@ def main() -> None:
       setattr(ctx.config, field, getattr(ctx.profile.config, field))
     # fmt: on
 
+  ctx.header = FixedHeader()
+
   try:
-    print()
-    _run_installation(ctx)
+    _run_installation(ctx, ctx.header)
 
     if config.dry:
       print()
