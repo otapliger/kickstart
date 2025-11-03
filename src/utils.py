@@ -315,7 +315,7 @@ def detect_gpu_vendors(warnings: list[str] | None = None) -> list[GPUVendor]:
   Detect GPU vendors present in the system by examining lspci output.
 
   Args:
-      warnings: Optional list to collect warnings instead of printing them
+      warnings: Optional list to collect warnings (dry mode only)
 
   Returns:
       List of GPUVendor enums representing detected GPUs
@@ -327,8 +327,6 @@ def detect_gpu_vendors(warnings: list[str] | None = None) -> list[GPUVendor]:
       warning_msg = f"lspci command failed (exit code {result.returncode}). Unable to detect GPU."
       if warnings is not None:
         warnings.append(warning_msg)
-      else:
-        info(f"{yellow}Warning: {warning_msg}{reset}")
       return [GPUVendor.UNKNOWN]
 
     output = result.stdout.lower()
@@ -353,16 +351,12 @@ def detect_gpu_vendors(warnings: list[str] | None = None) -> list[GPUVendor]:
     warning_msg = "Install pciutils to enable GPU detection"
     if warnings is not None:
       warnings.append(warning_msg)
-    else:
-      info(f"{yellow}Warning: {warning_msg}{reset}")
     return [GPUVendor.UNKNOWN]
 
   except Exception as e:
     warning_msg = f"Unexpected error detecting GPU - {e}"
     if warnings is not None:
       warnings.append(warning_msg)
-    else:
-      info(f"{yellow}Warning: {warning_msg}{reset}")
     return [GPUVendor.UNKNOWN]
 
 
