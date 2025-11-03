@@ -3,7 +3,6 @@
 import argparse
 import os
 import sys
-from pathlib import Path
 from typing import override
 from src.ansi_codes import red, reset, yellow, bold
 from src.steps import get_install_steps
