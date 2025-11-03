@@ -273,9 +273,6 @@ def get_distro_info(file_path: str = "/etc/os-release") -> tuple[str, str]:
 
   Returns:
       Tuple of (name, id) where both default to "Linux"/"linux" if not found
-
-  Raises:
-      SystemExit: If file cannot be read
   """
   try:
     with open(file_path, "r") as f:
@@ -305,9 +302,8 @@ def get_distro_info(file_path: str = "/etc/os-release") -> tuple[str, str]:
 
       return name or "Linux", distro_id or "linux"
 
-  except (FileNotFoundError, IOError) as e:
-    error(f"Failed to read distribution info from {file_path}: {e}")
-    sys.exit(1)
+  except (FileNotFoundError, IOError):
+    return "Linux", "linux"
 
 
 def detect_gpu_vendors(warnings: list[str] | None = None) -> list[GPUVendor]:
@@ -324,9 +320,8 @@ def detect_gpu_vendors(warnings: list[str] | None = None) -> list[GPUVendor]:
     result = subprocess.run(["lspci", "-nn"], capture_output=True, text=True, check=False)
 
     if result.returncode != 0:
-      warning_msg = f"lspci command failed (exit code {result.returncode}). Unable to detect GPU."
       if warnings is not None:
-        warnings.append(warning_msg)
+        warnings.append(f"lspci failed (exit {result.returncode}) - GPU detection skipped")
       return [GPUVendor.UNKNOWN]
 
     output = result.stdout.lower()
@@ -348,15 +343,8 @@ def detect_gpu_vendors(warnings: list[str] | None = None) -> list[GPUVendor]:
     return vendors or [GPUVendor.UNKNOWN]
 
   except FileNotFoundError:
-    warning_msg = "Install pciutils to enable GPU detection"
     if warnings is not None:
-      warnings.append(warning_msg)
-    return [GPUVendor.UNKNOWN]
-
-  except Exception as e:
-    warning_msg = f"Unexpected error detecting GPU - {e}"
-    if warnings is not None:
-      warnings.append(warning_msg)
+      warnings.append("Install pciutils to enable GPU detection")
     return [GPUVendor.UNKNOWN]
 
 

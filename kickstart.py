@@ -63,10 +63,10 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
     """),
     epilog=dedent("""
       Examples:
-        %(prog)s --dry                                      # Preview installation steps
-        %(prog)s --libc musl --keymap colemak               # Custom configuration
-        %(prog)s --profile ./profiles/minimal.json          # Use local profile
-        %(prog)s -r https://mirrors.example.com/void        # Different repository
+        %(prog)s --dry                              # Preview installation steps
+        %(prog)s --keymap fi --locale fi_FI.UTF-8   # Custom keymap and locale
+        %(prog)s --timezone Europe/Lisbon           # Custom timezone
+        %(prog)s --profile ./profiles/minimal.json  # Use local profile
 
       For more information, visit: https://github.com/otapliger/kickstart
     """),
@@ -204,12 +204,8 @@ def _run_installation(ctx: InstallerContext, header: FixedHeader, warnings: list
 
 def main() -> None:
   """Main entry point for the installer."""
-  # When in dry mode and /etc/os-release is missing, default to Linux
-  # This allows testing in non-Linux environments
-  is_dry_mode = "--dry" in sys.argv or "-d" in sys.argv
-  distro_name, distro_id = (
-    ("Linux", "linux") if not Path("/etc/os-release").exists() and is_dry_mode else get_distro_info()
-  )
+  # Detect distro - get_distro_info returns defaults if file missing
+  distro_name, distro_id = get_distro_info()
 
   # Collect warnings during dry mode to display at the end
   warnings: list[str] = []
@@ -218,7 +214,6 @@ def main() -> None:
   config = _create_context_config(parser.parse_args())
 
   # In dry mode with a profile, use the profile's distro
-  # This allows simulating installations for a specific distro
   profile = None
   if config.dry and config.profile:
     try:
