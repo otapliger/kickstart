@@ -30,7 +30,7 @@ def step_01_settings(ctx: InstallerContext) -> None:
     ("Timezone", ctx.config.timezone),
   ]
 
-  print("\n".join(f"  • {label}: {value}" for label, value in config_items))
+  print("\n".join(f" • {label}: {value}" for label, value in config_items))
   print()
 
   # Select hostname: CLI > profile > interactive

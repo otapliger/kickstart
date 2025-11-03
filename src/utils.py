@@ -237,7 +237,10 @@ def set_mirror(distro_id: str = "void") -> str:
   while True:
     try:
       print()
-      choice = input("Select a mirror (press Enter for default): ").strip()
+      default_mirror = next(
+        (f"{region} - {location}" for url, region, location in mirrors if url == default_repository), "default"
+      )
+      choice = input(f"Select a mirror [{default_mirror}]: ").strip()
       if not choice:
         return default_repository
 

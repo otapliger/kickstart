@@ -33,8 +33,8 @@ class ProfileConfig:
 class PackageSelection:
   """Package selection configuration."""
 
-  additional: list[str] = field(default_factory=list)  # Additional packages
-  exclude: list[str] = field(default_factory=list)  # Packages to exclude
+  additional: list[str] = field(default_factory=list)
+  exclude: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -161,8 +161,6 @@ class ProfileLoader:
   def _load_from_url(url: str) -> dict[str, object]:
     """Load JSON data from HTTP URL."""
     try:
-      info(f"Loading profile from {url}")
-
       req = urllib.request.Request(
         url,
         headers={
@@ -202,8 +200,6 @@ class ProfileLoader:
       if not path.exists():
         raise FileNotFoundError(f"Profile file not found: {path}")
 
-      info(f"Loading profile from {path}")
-
       with open(path, "r", encoding="utf-8") as f:
         parsed_data = json.load(f)
         if not isinstance(parsed_data, dict):
@@ -242,12 +238,11 @@ class ProfileLoader:
       if validation_issues:
         error(f"Profile validation failed for '{source}':")
         for issue in validation_issues:
-          print(f"  • {issue}")
+          print(f" • {issue}")
 
         raise ValueError(f"Profile contains {len(validation_issues)} validation error(s)")
 
       profile = InstallationProfile.from_dict(data)
-      info(f"Successfully loaded profile: {green}{profile.name}{reset}")
       return profile
 
     except Exception as e:

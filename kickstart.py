@@ -5,7 +5,7 @@ import os
 import sys
 from pathlib import Path
 from typing import override
-from src.ansi_codes import red, reset, yellow, bold
+from src.ansi_codes import red, reset, yellow, bold, green
 from src.ascii_art import print_logo
 from src.steps import install
 from src.utils import error, info, load_defaults, get_distro_info
@@ -213,8 +213,8 @@ def main() -> None:
   # Clear the screen
   print("\033[2J\033[H", end="")
 
-  # Get distro info early to load correct defaults
-  # If os-release doesn't exist and we're in dry mode, default to "linux"
+  # When in dry mode and /etc/os-release is missing, default to Linux
+  # This allows testing in non-Linux environments
   is_dry_mode = "--dry" in sys.argv or "-d" in sys.argv
   distro_name, distro_id = (
     ("Linux", "linux") if not Path("/etc/os-release").exists() and is_dry_mode else get_distro_info()
@@ -223,6 +223,19 @@ def main() -> None:
   defaults = load_defaults(distro_id)
   parser = _create_argument_parser(defaults)
   config = _create_context_config(parser.parse_args())
+
+  # In dry mode with a profile, use the profile's distro
+  # This allows simulating installations for a specific distro
+  profile = None
+  if config.dry and config.profile:
+    try:
+      profile = ProfileLoader.load(config.profile)
+      distro_id = profile.distro
+      distro_name = profile.distro.capitalize()
+      defaults = load_defaults(distro_id)
+    except Exception as e:
+      error(f"Failed to load profile: {e}")
+      sys.exit(1)
 
   print_logo(distro_id)
 
@@ -240,7 +253,7 @@ def main() -> None:
 
   if errors:
     error("Invalid arguments provided:")
-    print("\n".join(f"  • {err}" for err in errors))
+    print("\n".join(f" • {err}" for err in errors))
     print(f"\n{yellow}Use --help for valid options{reset}")
     sys.exit(1)
 
@@ -257,34 +270,34 @@ def main() -> None:
   ctx.distro_id = distro_id
 
   if config.profile:
-    try:
-      ctx.profile = ProfileLoader.load(config.profile)
+    info(f"Successfully loaded profile: {green}{config.profile}{reset}")
+    if profile:
+      ctx.profile = profile
+    else:
+      try:
+        ctx.profile = ProfileLoader.load(config.profile)
 
-      # Check if profile distro matches system distro
-      if ctx.profile.distro != ctx.distro_id:
-        msg = f"Profile distro mismatch - profile requires '{ctx.profile.distro}' but system is '{ctx.distro_id}'"
-        if config.dry:
-          print(f"{yellow}Warning: {msg}{reset}")
-        else:
+        if ctx.profile.distro != ctx.distro_id:
+          msg = f"Profile distro mismatch - profile requires '{ctx.profile.distro}' but system is '{ctx.distro_id}'"
           error(msg)
           sys.exit(1)
 
-      # Apply profile configuration overrides to base config
-      # (only if not explicitly set via CLI)
-      config_fields = ["libc", "timezone", "keymap", "locale", "repository"]
+      except Exception as e:
+        error(f"Failed to load profile: {e}")
+        sys.exit(1)
 
-      # fmt: off
-      for field in (
-        f for f in config_fields
-        if getattr(ctx.profile.config, f)
-        and getattr(ctx.config, f) == defaults[f]
-      ):
-        setattr(ctx.config, field, getattr(ctx.profile.config, field))
-      # fmt: on
+    # Apply profile configuration overrides to base config
+    # (only if not explicitly set via CLI)
+    config_fields = ["libc", "timezone", "keymap", "locale", "repository"]
 
-    except Exception as e:
-      error(f"Failed to load profile: {e}")
-      sys.exit(1)
+    # fmt: off
+    for field in (
+      f for f in config_fields
+      if getattr(ctx.profile.config, f)
+      and getattr(ctx.config, f) == defaults[f]
+    ):
+      setattr(ctx.config, field, getattr(ctx.profile.config, field))
+    # fmt: on
 
   try:
     print()
