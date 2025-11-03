@@ -47,15 +47,6 @@ def _check_system_requirements() -> None:
     error("Root privileges are required. Please re-run the script as root.")
     sys.exit(2)
 
-  if not Path("/dev").exists():
-    error("System appears to be in an invalid state - /dev directory not found.")
-    sys.exit(3)
-
-  # Check if we're in a live environment or chroot
-  if not Path("/proc/mounts").exists():
-    error("System appears to be in an invalid state - /proc not mounted.")
-    sys.exit(3)
-
 
 def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser:
   """Create and configure the argument parser."""

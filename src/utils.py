@@ -408,27 +408,6 @@ def get_gpu_packages(
   return sorted(packages)
 
 
-def print_detected_gpus(vendors: list[GPUVendor]) -> None:
-  """
-  Print detected GPU vendors in a user-friendly format.
-
-  Args:
-      vendors: List of detected GPU vendors
-  """
-  if not vendors or vendors == [GPUVendor.UNKNOWN]:
-    info("No specific GPU detected, will use generic drivers.")
-    return
-
-  info("Detected GPU(s):")
-  for vendor in vendors:
-    if vendor == GPUVendor.INTEL:
-      print("  - Intel GPU")
-    elif vendor == GPUVendor.AMD:
-      print("  - AMD GPU")
-    elif vendor == GPUVendor.NVIDIA:
-      print("  - NVIDIA GPU")
-
-
 def collect_header_lines(distro_id: str, dry_mode: bool = False) -> list[str]:
   """
   Collect all header content (logo, dry run message) into a list of lines.

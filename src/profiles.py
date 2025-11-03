@@ -13,8 +13,8 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
-from src.ansi_codes import green, yellow, reset
-from src.utils import error, info
+from src.ansi_codes import yellow, reset
+from src.utils import error
 from src.validations import validate_profile_json, is_string_list
 
 
@@ -106,52 +106,6 @@ class InstallationProfile:
       hostname=hostname,
       post_install_commands=post_install_commands,
     )
-
-  def to_dict(self) -> dict[str, object]:
-    """Convert profile to dictionary for JSON serialization."""
-    result: dict[str, object] = {
-      "name": self.name,
-      "description": self.description,
-      "distro": self.distro,
-      "version": self.version,
-    }
-
-    # Build config dict using comprehension, filtering out None values
-    config_dict = {
-      k: v
-      for k, v in {
-        "libc": self.config.libc,
-        "timezone": self.config.timezone,
-        "keymap": self.config.keymap,
-        "locale": self.config.locale,
-        "repository": self.config.repository,
-      }.items()
-      if v is not None
-    }
-
-    # Build packages dict using comprehension, filtering out empties
-    packages_dict = {
-      k: v
-      for k, v in {
-        "additional": self.packages.additional,
-        "exclude": self.packages.exclude,
-      }.items()
-      if v
-    }
-
-    # Build optional fields dict, filtering out empties
-    optional_fields = {
-      k: v
-      for k, v in {
-        "config": config_dict,
-        "packages": packages_dict,
-        "hostname": self.hostname,
-        "post_install_commands": self.post_install_commands,
-      }.items()
-      if v
-    }
-
-    return {**result, **optional_fields}
 
 
 class ProfileLoader:

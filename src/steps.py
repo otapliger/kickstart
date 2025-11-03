@@ -7,7 +7,6 @@ from src.chroot import generate_chroot
 from src.distros import get_distro
 from src.utils import (
   error,
-  info,
   cmd,
   scmd,
   write,
@@ -42,8 +41,9 @@ def step_01_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
   if ctx.header:
     ctx.header.set_header_content(header_lines, status_line_position)
     ctx.header.initialize()
-    total_steps = len(install)
-    first_step_name = format_step_name(install[0].__name__)
+    steps = get_install_steps(ctx)
+    total_steps = len(steps)
+    first_step_name = format_step_name(steps[0].__name__)
     ctx.header.update_status(f"[▓▓░░░░░░░░] {first_step_name} · Step 1/{total_steps}")
 
   # Print config information in scrolling body
@@ -106,8 +106,7 @@ def step_02_disk_setup(ctx: InstallerContext, _warnings: list[str]) -> None:
   cmd(f"partprobe {ctx.disk}", ctx.dry)
   cmd(f"mkfs.vfat -F32 -n ESP {ctx.esp}", ctx.dry)
 
-  # At this point we should always have a LUKS password
-  assert isinstance(ctx.luks_pass, str), "luks_pass must be set before disk setup"
+  assert ctx.luks_pass is not None
   scmd(f"cryptsetup luksFormat --type luks1 --pbkdf-force-iterations 1000 {ctx.cryptroot} -d -", ctx.luks_pass, ctx.dry)
   scmd(f"cryptsetup luksOpen {ctx.cryptroot} {ctx.host} -d -", ctx.luks_pass, ctx.dry)
   cmd(f"mkfs.btrfs -L {ctx.host} {ctx.root}", ctx.dry)
@@ -230,8 +229,8 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext, warning
   cmd("mount --rbind /run /mnt/run", ctx.dry)
   cmd("mount --rbind /dev /mnt/dev", ctx.dry)
   cmd("chroot /mnt /bin/bash -x /root/chroot.sh", ctx.dry)
-  assert isinstance(ctx.user_name, str), "user_name must be set before configuring system"
-  assert isinstance(ctx.user_pass, str), "user_pass must be set before configuring system"
+  assert ctx.user_name is not None
+  assert ctx.user_pass is not None
   scmd("chroot /mnt passwd root", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry)
   scmd(f"chroot /mnt passwd {ctx.user_name}", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry)
 
@@ -239,9 +238,6 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext, warning
 def step_05_cleanup(ctx: InstallerContext, _warnings: list[str]) -> None:
   cmd("rm -rf /mnt/root/chroot.sh", ctx.dry)
   cmd("umount --recursive /mnt", ctx.dry)
-  print()
-
-  info("Installation completed. You can now reboot your system.")
 
 
 def get_install_steps(ctx: InstallerContext) -> list[Callable[[InstallerContext, list[str]], None]]:
@@ -263,12 +259,3 @@ def get_install_steps(ctx: InstallerContext) -> list[Callable[[InstallerContext,
     ]
 
   return all_steps
-
-
-install: list[Callable[[InstallerContext, list[str]], None]] = [
-  step_01_settings,
-  step_02_disk_setup,
-  step_03_system_bootstrap,
-  step_04_system_installation_and_configuration,
-  step_05_cleanup,
-]
