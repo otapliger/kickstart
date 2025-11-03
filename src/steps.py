@@ -35,13 +35,7 @@ def step_01_settings(ctx: InstallerContext) -> None:
   header_lines = collect_header_lines(ctx.distro_id, ctx.dry)
   status_line_position = len(header_lines) + 1
   header_lines.append("")  # Placeholder for status bar
-  header_lines.append("")  # Empty line after status bar
-
-  if ctx.dry:
-    header_lines.append("Skipping root and system checks in dry run mode")
-    header_lines.append("")
-
-  header_lines.extend(f" • {label}: {value}" for label, value in config_items)
+  header_lines.append("")  # Empty line before scrolling region
 
   # Initialize fixed header with scrolling region
   if ctx.header:
@@ -50,6 +44,15 @@ def step_01_settings(ctx: InstallerContext) -> None:
     total_steps = len(install)
     first_step_name = format_step_name(install[0].__name__)
     ctx.header.update_status(f"[▓▓░░░░░░░░] {first_step_name} · Step 1/{total_steps}")
+
+  # Print config information in scrolling body
+  if ctx.dry:
+    print("Skipping root and system checks in dry run mode")
+    print()
+
+  for label, value in config_items:
+    print(f" • {label}: {value}")
+  print()
 
   # Select hostname: CLI > profile > interactive
   # fmt: off
