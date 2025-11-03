@@ -180,6 +180,9 @@ def _run_installation(ctx: InstallerContext, header: FixedHeader) -> None:
   for i, step in enumerate(install, 1):
     step_name = format_step_name(step.__name__)
 
+    # Clear cached output from previous step
+    header.clear_step_output()
+
     # Status line
     filled = "▓▓" * i
     empty = "░░" * (total_steps - i)
