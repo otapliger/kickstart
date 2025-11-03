@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import cast
 from src.ansi_codes import yellow, reset
 from src.utils import error
-from src.validations import validate_profile_json, is_string_list
+from src.validations import validate_profile_json
 
 
 @dataclass
@@ -52,49 +52,37 @@ class InstallationProfile:
 
   @classmethod
   def from_dict(cls, data: dict[str, object]) -> InstallationProfile:
-    """Create profile from dictionary (loaded JSON)."""
-    required_fields = ["name", "description", "distro"]
-
-    if missing := [k for k in required_fields if k not in data]:
-      raise ValueError(f"Profile must have {', '.join(repr(k) for k in missing)} field(s)")
-
-    # Extract and validate types
-    name, description, distro = data["name"], data["description"], data["distro"]
-
-    if not all(isinstance(v, str) for v in [name, description, distro]):
-      invalid = [
-        k for k, v in [("name", name), ("description", description), ("distro", distro)] if not isinstance(v, str)
-      ]
-      raise ValueError(f"Profile fields {', '.join(repr(k) for k in invalid)} must be strings")
-
-    # Cast to str after validation
-    name, description, distro = str(name), str(description), str(distro)
+    """Create profile from dictionary."""
+    name = str(data["name"])
+    description = str(data["description"])
+    version = str(data.get("version", "1.0"))
+    distro = str(data["distro"])
 
     config_data = data.get("config", {})
-    config_data = config_data if isinstance(config_data, dict) else {}
-    config_fields = ["libc", "timezone", "keymap", "locale", "repository"]
-    config_values = {k: config_data.get(k) if isinstance(config_data.get(k), str) else None for k in config_fields}
+    config = (
+      ProfileConfig(
+        libc=str(config_data.get("libc")) if isinstance(config_data.get("libc"), str) else None,
+        timezone=str(config_data.get("timezone")) if isinstance(config_data.get("timezone"), str) else None,
+        keymap=str(config_data.get("keymap")) if isinstance(config_data.get("keymap"), str) else None,
+        locale=str(config_data.get("locale")) if isinstance(config_data.get("locale"), str) else None,
+        repository=str(config_data.get("repository")) if isinstance(config_data.get("repository"), str) else None,
+      )
+      if isinstance(config_data, dict)
+      else ProfileConfig()
+    )
 
-    config = ProfileConfig(**config_values)
-
-    # Create package selection
     packages_data = data.get("packages", {})
-    if not isinstance(packages_data, dict):
-      packages_data = {}
-
-    additional_packages = packages_data.get("additional", [])
-    exclude_packages = packages_data.get("exclude", [])
-
-    packages = PackageSelection(
-      additional=cast(list[str], additional_packages) if is_string_list(additional_packages) else [],
-      exclude=cast(list[str], exclude_packages) if is_string_list(exclude_packages) else [],
+    packages = (
+      PackageSelection(
+        additional=cast(list[str], packages_data.get("additional", [])),
+        exclude=cast(list[str], packages_data.get("exclude", [])),
+      )
+      if isinstance(packages_data, dict)
+      else PackageSelection()
     )
 
-    version = str(version_raw) if (version_raw := data.get("version", "1.0")) is not None else "1.0"
-    hostname = hostname_raw if isinstance(hostname_raw := data.get("hostname"), str) else None
-    post_install_commands = (
-      cast(list[str], commands_raw) if is_string_list(commands_raw := data.get("post_install_commands", [])) else []
-    )
+    hostname = str(data["hostname"]) if isinstance(data.get("hostname"), str) else None
+    post_install_commands = cast(list[str], data.get("post_install_commands", []))
 
     return cls(
       name=name,

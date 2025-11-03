@@ -190,18 +190,6 @@ def _run_installation(ctx: InstallerContext, header: FixedHeader, warnings: list
       print(f"{red}Installation interrupted by user. Exiting...{reset}")
       sys.exit(130)
 
-    except FileNotFoundError as e:
-      header.cleanup()
-      error(f"Required file or directory not found: {e}")
-      error("This might indicate a system configuration issue.")
-      sys.exit(4)
-
-    except PermissionError as e:
-      header.cleanup()
-      error(f"Permission denied: {e}")
-      error("Make sure you're running as root and have proper permissions.")
-      sys.exit(5)
-
     except Exception as e:
       header.cleanup()
       error(f"Step '{step_name}' failed with error: {e}")
