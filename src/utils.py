@@ -444,6 +444,7 @@ def collect_header_lines(distro_id: str, dry_mode: bool = False) -> list[str]:
 
   if dry_mode:
     lines.append(f"{yellow}{bold}DRY RUN MODE{reset} - No actual changes will be made to your system")
+  lines.append("")
 
   return lines
 
