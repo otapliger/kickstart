@@ -8,6 +8,7 @@ from typing import override
 from src.ansi_codes import red, reset, yellow, bold, green
 from src.ascii_art import print_logo
 from src.steps import install
+from src.status import StatusLine
 from src.utils import error, info, load_defaults, get_distro_info
 from src.types import DefaultsConfig, ContextConfig
 from src.context import InstallerContext
@@ -176,36 +177,48 @@ def _create_context_config(args: Namespace) -> ContextConfig:
 def _run_installation(ctx: InstallerContext) -> None:
   """Run the installation process with proper error handling."""
   total_steps = len(install)
+  status_line = StatusLine()
 
   for i, step in enumerate(install, 1):
     step_name = step.__name__.replace("step_", "").replace("_", " ").title().lstrip("0123456789 ")
 
-    info(f"[{i}/{total_steps}] {step_name}")
+    # Status line
+    filled = "▓▓" * i
+    empty = "░░" * (total_steps - i)
+    progress_bar = f"[{filled}{empty}]"
+    status_line.update(f"{progress_bar} {step_name} · Step {i}/{total_steps}")
 
     try:
       step(ctx)
 
     except KeyboardInterrupt:
+      status_line.clear()
       print()
       print(f"{red}Installation interrupted by user. Exiting...{reset}")
       sys.exit(130)
 
     except FileNotFoundError as e:
+      status_line.clear()
       error(f"Required file or directory not found: {e}")
       error("This might indicate a system configuration issue.")
       sys.exit(4)
 
     except PermissionError as e:
+      status_line.clear()
       error(f"Permission denied: {e}")
       error("Make sure you're running as root and have proper permissions.")
       sys.exit(5)
 
     except Exception as e:
+      status_line.clear()
       error(f"Step '{step_name}' failed with error: {e}")
       error("Installation cannot continue.")
       if ctx.dry:
         error("This error occurred during dry run - actual installation might fail.")
       sys.exit(1)
+
+  # Clear status line when installation completes
+  status_line.clear()
 
 
 def main() -> None:

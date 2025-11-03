@@ -75,47 +75,27 @@ def step_01_settings(ctx: InstallerContext) -> None:
 
 
 def step_02_disk_setup(ctx: InstallerContext) -> None:
-  info("- wiping disk {}".format(ctx.disk))
-
   cmd(f"wipefs -af {ctx.disk}", ctx.dry)
   cmd(f"sgdisk -Zo {ctx.disk}", ctx.dry)
-
-  info("- creating partitions")
-
   cmd(f"parted -s {ctx.disk} mklabel gpt", ctx.dry)
   cmd(f"parted -s {ctx.disk} mkpart ESP fat32 1MiB 513MiB", ctx.dry)
   cmd(f"parted -s {ctx.disk} mkpart ENCRYPTED 513MiB 100%", ctx.dry)
   cmd(f"parted -s {ctx.disk} set 1 esp on", ctx.dry)
-
-  info("- updating kernel partition table")
-
   cmd(f"partprobe {ctx.disk}", ctx.dry)
-
-  info("- formatting EFI partition")
-
   cmd(f"mkfs.vfat -F32 -n ESP {ctx.esp}", ctx.dry)
-
-  info("- setting up disk encryption")
 
   # At this point we should always have a LUKS password
   assert isinstance(ctx.luks_pass, str), "luks_pass must be set before disk setup"
   scmd(f"cryptsetup luksFormat --type luks1 --pbkdf-force-iterations 1000 {ctx.cryptroot} -d -", ctx.luks_pass, ctx.dry)
   scmd(f"cryptsetup luksOpen {ctx.cryptroot} {ctx.host} -d -", ctx.luks_pass, ctx.dry)
-
-  info("- creating BTRFS filesystem")
-
   cmd(f"mkfs.btrfs -L {ctx.host} {ctx.root}", ctx.dry)
   cmd(f"mount -o compress=zstd,noatime {ctx.root} /mnt", ctx.dry)
-
-  info("- creating subvolumes")
 
   subvols = ["", "home", "snapshots", "var_cache", "var_log"]
   for name in (f"/mnt/@{sub}" if sub else "/mnt/@" for sub in subvols):
     cmd(f"btrfs subvolume create {name}", ctx.dry)
 
   cmd("umount /mnt", ctx.dry)
-
-  info("- mounting filesystem")
 
   mount_base = "mount -o X-mount.mkdir,compress=zstd,noatime,subvol=@"
 
@@ -135,12 +115,8 @@ def step_02_disk_setup(ctx: InstallerContext) -> None:
 
 
 def step_03_system_bootstrap(ctx: InstallerContext) -> None:
-  info("- configuring package manager")
-
   cmd("mkdir -p /mnt/var/db/xbps/keys", ctx.dry)
   cmd("cp /var/db/xbps/keys/* /mnt/var/db/xbps/keys", ctx.dry)
-
-  info("- installing base system")
 
   if ctx.dry:
     base_pkgs = ["base", "linux"]
@@ -186,8 +162,6 @@ def step_03_system_bootstrap(ctx: InstallerContext) -> None:
 
 
 def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None:
-  info("- configuring system files")
-
   efi_uuid = (
     "DRY-RUN-EFI-UUID"
     if ctx.dry
@@ -252,8 +226,6 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
     write([f"{ctx.config.locale}"], "/mnt/etc/default/libc-locales", ctx.dry)
     cmd("xbps-reconfigure -f glibc-locales -r /mnt", ctx.dry)
 
-  info("- installing packages and configuring services")
-
   generate_chroot(
     path="/mnt/root/chroot.sh",
     ctx=ctx,
@@ -275,8 +247,6 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext) -> None
 
 
 def step_05_cleanup(ctx: InstallerContext) -> None:
-  info("- finalizing installation")
-
   cmd("rm -rf /mnt/root/chroot.sh", ctx.dry)
   cmd("umount --recursive /mnt", ctx.dry)
   print()

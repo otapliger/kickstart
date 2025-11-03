@@ -144,7 +144,7 @@ def generate_chroot(
     _section_post_install(ctx),
   ]
   if dry_run:
-    info(f"{gray}[DRY RUN] generated chroot script:{reset}")
+    info(f"{gray}[DRY RUN] Generated chroot script:{reset}")
     print("\n".join(parts))
   else:
     with open(path, "w") as f:

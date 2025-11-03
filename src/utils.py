@@ -61,7 +61,7 @@ def write(lines: list[str], path: str, dry_run: bool = False) -> None:
   if dry_run:
     info(f"{gray}[DRY RUN] Writing to {path}:")
     for line in lines:
-      print(f"{gray}  {line}{reset}")
+      print(f"{gray}{line}{reset}")
     return
 
   open(path, "w").close()
