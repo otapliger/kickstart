@@ -4,6 +4,7 @@ import json
 from src.ansi_codes import gray, reset
 from src.utils import info, error, detect_gpu_vendors, get_gpu_packages
 from src.context import InstallerContext
+from src.distros import get_distro
 from textwrap import dedent
 
 
@@ -13,27 +14,9 @@ def _section_header() -> str:
   """)
 
 
-def _section_luks_key_setup(crypt_uuid: str, luks_pass: str) -> str:
-  return dedent(f"""\
-    mkdir -p /etc/dracut.conf.d
-    dd if=/dev/urandom of=/boot/crypto.key bs=1024 count=4
-    chmod 000 /boot/crypto.key
-
-    tee /etc/dracut.conf.d/10-crypt.conf &> /dev/null << EOF
-    install_items+=" /boot/crypto.key /etc/crypttab "
-    EOF
-
-    tee /etc/dracut.conf.d/20-modules.conf &> /dev/null << EOF
-    add_dracutmodules+=" crypt btrfs resume "
-    EOF
-
-    cryptsetup luksAddKey /dev/disk/by-partlabel/ENCRYPTED /boot/crypto.key << EOF
-    {luks_pass}
-    EOF
-
-    echo "ENCRYPTED UUID={crypt_uuid} /crypto.key luks,discard" >> /etc/crypttab
-    chmod -R g-rwx,o-rwx /boot
-  """)
+def _section_luks_key_setup(crypt_uuid: str, luks_pass: str, distro_id: str) -> str:
+  distro = get_distro(distro_id)
+  return distro.initramfs_config(crypt_uuid, luks_pass)
 
 
 def _section_grub_install(crypt_uuid: str, distro_name: str) -> str:
@@ -86,36 +69,41 @@ def _section_install_packages(ctx: InstallerContext) -> str:
   if not pkgs_list:
     return ""
 
-  pkgs = " ".join(pkgs_list)
-  return dedent(f"""\
-    yes | xi && yes | xbps-install -USy --repository "{ctx.repository}" {pkgs}
-  """)
+  distro = get_distro(ctx.distro_id)
+  return distro.install_packages(pkgs_list, ctx.repository)
 
 
 def _section_post_install(ctx: InstallerContext) -> str:
-  sections = [
-    dedent("""\
-      xbps-reconfigure --force --all
-    """),
-    dedent("""\
-      ln -srf /etc/sv/{chronyd,dhcpcd,grub-btrfs,ufw} /var/service/
-    """),
+  commands = []
+  distro = get_distro(ctx.distro_id)
+
+  reconfigure_cmd = distro.reconfigure_system()
+  if reconfigure_cmd:
+    commands.append(f"{reconfigure_cmd}\n")
+
+  services = distro.default_services()
+  if services:
+    commands.append(f"{distro.enable_services(services)}\n")
+
+  commands.append(
     dedent("""\
       ufw default deny incoming
       ufw default allow outgoing
-    """),
+    """)
+  )
+
+  commands.append(
     dedent(f"""\
       chsh --shell /bin/bash root
       useradd --create-home --groups wheel,users,input,audio,video,network --shell /bin/fish {ctx.user_name}
-    """),
-  ]
+    """)
+  )
 
-  # Add profile-specific post-install commands
   if ctx.profile and ctx.profile.post_install_commands:
     profile_commands = "\n".join(ctx.profile.post_install_commands)
-    sections.append(f"\n{profile_commands}\n")
+    commands.append(f"\n{profile_commands}\n")
 
-  return "".join(sections)
+  return "".join(commands)
 
 
 def generate_chroot(
@@ -138,7 +126,7 @@ def generate_chroot(
   )
   parts: list[str] = [
     _section_header(),
-    _section_luks_key_setup(crypt_uuid, luks_pass),
+    _section_luks_key_setup(crypt_uuid, luks_pass, ctx.distro_id),
     _section_grub_install(crypt_uuid, distro_name),
     _section_install_packages(ctx),
     _section_post_install(ctx),
