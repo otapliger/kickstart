@@ -1,7 +1,7 @@
 from __future__ import annotations
 from src.profiles import InstallationProfile
 from src.types import ContextConfig
-from src.header import FixedHeader
+from src.tui import TUI
 
 
 class InstallerContext:
@@ -35,7 +35,7 @@ class InstallerContext:
     self.root: str | None = None
 
     # UI components
-    self.header: FixedHeader | None = None
+    self.ui: TUI | None = None
 
   @property
   def dry(self) -> bool:

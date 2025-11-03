@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import override
 from src.ansi_codes import red, reset, yellow, bold
 from src.steps import get_install_steps
-from src.header import FixedHeader
+from src.tui import TUI
 from src.utils import error, info, load_defaults, get_distro_info, format_step_name
 from src.types import DefaultsConfig, ContextConfig
 from src.context import InstallerContext
@@ -164,7 +164,7 @@ def _create_context_config(args: Namespace) -> ContextConfig:
   )
 
 
-def _run_installation(ctx: InstallerContext, header: FixedHeader, warnings: list[str]) -> None:
+def _run_installation(ctx: InstallerContext, ui: TUI, warnings: list[str]) -> None:
   """Run the installation process with proper error handling."""
   steps = get_install_steps(ctx)
   total_steps = len(steps)
@@ -173,25 +173,25 @@ def _run_installation(ctx: InstallerContext, header: FixedHeader, warnings: list
     step_name = format_step_name(step.__name__)
 
     # Clear cached output from previous step
-    header.clear_step_output()
+    ui.clear_step_output()
 
     # Status line
     filled = "▓▓" * i
     empty = "░░" * (total_steps - i)
     progress_bar = f"[{filled}{empty}]"
-    header.update_status(f"{progress_bar} {step_name} · Step {i}/{total_steps}")
+    ui.update_status(f"[{progress_bar}] {step_name} · Step {i}/{total_steps}")
 
     try:
       step(ctx, warnings)
 
     except KeyboardInterrupt:
-      header.cleanup()
+      ui.cleanup()
       print()
       print(f"{red}Installation interrupted by user. Exiting...{reset}")
       sys.exit(130)
 
     except Exception as e:
-      header.cleanup()
+      ui.cleanup()
       error(f"Step '{step_name}' failed with error: {e}")
       error("Installation cannot continue.")
       if ctx.dry:
@@ -199,7 +199,7 @@ def _run_installation(ctx: InstallerContext, header: FixedHeader, warnings: list
       sys.exit(1)
 
   # Clear status line when installation completes
-  header.cleanup()
+  ui.cleanup()
 
 
 def main() -> None:
@@ -276,10 +276,10 @@ def main() -> None:
       setattr(ctx.config, field, getattr(ctx.profile.config, field))
     # fmt: on
 
-  ctx.header = FixedHeader()
+  ctx.ui = TUI()
 
   try:
-    _run_installation(ctx, ctx.header, warnings)
+    _run_installation(ctx, ctx.ui, warnings)
 
     if config.dry:
       print("\n")

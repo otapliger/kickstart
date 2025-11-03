@@ -17,7 +17,7 @@ from src.utils import (
   set_user,
   set_mirror,
   load_defaults,
-  collect_header_lines,
+  collect_content_lines,
   format_step_name,
 )
 
@@ -32,19 +32,19 @@ def step_01_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
     ("Timezone", ctx.config.timezone),
   ]
 
-  header_lines = collect_header_lines(ctx.distro_id, ctx.dry)
-  status_line_position = len(header_lines) + 1
-  header_lines.append("")  # Placeholder for status bar
-  header_lines.append("")  # Empty line before scrolling region
+  content_lines = collect_content_lines(ctx.distro_id, ctx.dry)
+  status_line_position = len(content_lines) + 1
+  content_lines.append("")  # Placeholder for status bar
+  content_lines.append("")  # Empty line before scrolling region
 
-  # Initialize fixed header with scrolling region
-  if ctx.header:
-    ctx.header.set_header_content(header_lines, status_line_position)
-    ctx.header.initialize()
+  # Initialize TUI with scrolling region
+  if ctx.ui:
+    ctx.ui.set_content(content_lines, status_line_position)
+    ctx.ui.initialize()
     steps = get_install_steps(ctx)
     total_steps = len(steps)
     first_step_name = format_step_name(steps[0].__name__)
-    ctx.header.update_status(f"[▓▓░░░░░░░░] {first_step_name} · Step 1/{total_steps}")
+    ctx.ui.update_status(f"[▓▓░░░░░░░░] {first_step_name} · Step 1/{total_steps}")
 
   # Print config information in scrolling body
   if ctx.dry:

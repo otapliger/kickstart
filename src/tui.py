@@ -72,15 +72,15 @@ class TerminalState:
 
 
 class OutputInterceptor:
-  def __init__(self, header: "FixedHeader", original_stdout: TextIO):
-    self.header: FixedHeader = header
+  def __init__(self, ui: "TUI", original_stdout: TextIO):
+    self.ui: TUI = ui
     self.original_stdout: TextIO = original_stdout
     self.last_write_ended_newline: bool = True
 
   def write(self, text: str) -> int:
     result = self.original_stdout.write(text)
 
-    if self.header.enabled and not self.header.is_redrawing and text:
+    if self.ui.enabled and not self.ui.is_redrawing and text:
       self._append_to_step_output(text)
       self._update_cursor_tracking(text)
 
@@ -88,23 +88,23 @@ class OutputInterceptor:
 
   def _append_to_step_output(self, text: str) -> None:
     if text == "\n" and self.last_write_ended_newline:
-      self.header.step_output.append("")
+      self.ui.step_output.append("")
 
     elif text != "\n":
-      self.header.step_output.append(text.rstrip("\n"))
+      self.ui.step_output.append(text.rstrip("\n"))
 
     self.last_write_ended_newline = text.endswith("\n")
 
   def _update_cursor_tracking(self, text: str) -> None:
-    new_line, new_col = get_new_cursor_position(text, self.header.state.cursor_line, self.header.state.cursor_col)
-    self.header.state.cursor_line = new_line
-    self.header.state.cursor_col = new_col
+    new_line, new_col = get_new_cursor_position(text, self.ui.state.cursor_line, self.ui.state.cursor_col)
+    self.ui.state.cursor_line = new_line
+    self.ui.state.cursor_col = new_col
 
   def flush(self) -> None:
     return self.original_stdout.flush()
 
 
-class FixedHeader:
+class TUI:
   def __init__(self):
     self.state: TerminalState = TerminalState()
     self.interceptor: OutputInterceptor | None = None
@@ -112,20 +112,20 @@ class FixedHeader:
     self.original_stdout: TextIO = sys.stdout
     self.sigwinch_handler: Callable[[int, FrameType | None], None] | signal.Handlers | int | None = None
     self.enabled: bool = sys.stdout.isatty()
-    self.header_height: int = 0
-    self.header_lines: list[str] = []
+    self.content_height: int = 0
+    self.content_lines: list[str] = []
     self.initialized: bool = False
     self.status_position: int = 0
     self.status_text: str = ""
     self.step_output: list[str] = []
 
-  def set_header_content(self, lines: list[str], status_position: int) -> None:
+  def set_content(self, lines: list[str], status_position: int) -> None:
     if not self.enabled:
       return
 
-    self.header_lines = lines
+    self.content_lines = lines
     self.status_position = status_position
-    self.header_height = len(lines)
+    self.content_height = len(lines)
     self._update_terminal_size()
 
   def _update_terminal_size(self) -> None:
@@ -145,14 +145,14 @@ class FixedHeader:
     self._update_terminal_size()
 
     if self._has_terminal_size_changed(last_height, last_width):
-      self._redraw_header()
+      self._redraw()
 
   def _is_terminal_too_small(self) -> bool:
-    min_height = self.header_height + 3
+    min_height = self.content_height + 3
     return self.state.terminal_height < min_height
 
-  def _write_header_lines(self) -> None:
-    for line in self.header_lines:
+  def _write_content_lines(self) -> None:
+    for line in self.content_lines:
       write_sequence(sys.stdout, line + "\n")
 
   def _write_step_output_lines(self) -> None:
@@ -182,7 +182,7 @@ class FixedHeader:
     self.state.cursor_line = 0
     self.state.cursor_col = 1
 
-  def _redraw_header(self) -> None:
+  def _redraw(self) -> None:
     if not self.enabled or not self.initialized or self._is_terminal_too_small():
       return
 
@@ -193,11 +193,11 @@ class FixedHeader:
     write_sequence(sys.stdout, CLEAR_SCREEN)
     write_sequence(sys.stdout, MOVE_HOME)
 
-    # Write header
-    self._write_header_lines()
+    # Write content
+    self._write_content_lines()
 
     # Set scroll region
-    scroll_start = self.header_height + 1
+    scroll_start = self.content_height + 1
     write_sequence(sys.stdout, set_scroll_region(scroll_start, self.state.terminal_height))
     write_sequence(sys.stdout, move_to(scroll_start, 1))
     self._reset_cursor_state()
@@ -218,10 +218,10 @@ class FixedHeader:
     write_sequence(sys.stdout, CLEAR_SCREEN)
     write_sequence(sys.stdout, HIDE_CURSOR)
     write_sequence(sys.stdout, MOVE_HOME)
-    self._write_header_lines()
+    self._write_content_lines()
 
   def _setup_scroll_region(self) -> None:
-    scroll_start = self.header_height + 1
+    scroll_start = self.content_height + 1
     write_sequence(sys.stdout, set_scroll_region(scroll_start, self.state.terminal_height))
     write_sequence(sys.stdout, move_to(scroll_start, 1))
     write_sequence(sys.stdout, SHOW_CURSOR)

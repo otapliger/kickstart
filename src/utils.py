@@ -396,16 +396,16 @@ def get_gpu_packages(
   return sorted(packages)
 
 
-def collect_header_lines(distro_id: str, dry_mode: bool = False) -> list[str]:
+def collect_content_lines(distro_id: str, dry_mode: bool = False) -> list[str]:
   """
-  Collect all header content (logo, dry run message) into a list of lines.
+  Collect all UI content (logo, dry run message) into a list of lines.
 
   Args:
       distro_id: Distribution identifier for logo selection
       dry_mode: Whether dry run mode is enabled
 
   Returns:
-      List of strings representing each line of the header
+      List of strings representing each line of the UI content
   """
   from src.ascii_art import print_logo
   from src.ansi_codes import bold
