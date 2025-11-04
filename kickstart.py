@@ -169,16 +169,17 @@ def _create_context_config(args: Namespace) -> ContextConfig:
 def _run_installation(ctx: InstallerContext, ui: TUI, warnings: list[str]) -> None:
   """Run the installation process with proper error handling."""
   steps = get_install_steps(ctx)
-  total_steps = len(steps)
+  total_steps = len(steps) - 1  # Exclude step 0 from count
 
-  for i, step in enumerate(steps, 1):
+  for i, step in enumerate(steps):
     step_name = format_step_name(step.__name__)
 
-    # Status line
-    filled = "▓" * i
-    empty = "░" * (total_steps - i)
-    progress_bar = f"[{filled}{empty}]"
-    ui.update_status(f"{progress_bar} {step_name} · Step {i}/{total_steps}")
+    # Status line (exclude step 0 from status bar display)
+    if i > 0:
+      filled = "▓" * i
+      empty = "░" * (total_steps - i)
+      progress_bar = f"[{filled}{empty}]"
+      ui.update_status(f"{progress_bar} {step_name} · Step {i}/{total_steps}")
 
     try:
       step(ctx, warnings)
@@ -274,7 +275,7 @@ def main() -> None:
       setattr(ctx.config, field, getattr(ctx.profile.config, field))
     # fmt: on
 
-  ctx.ui = TUI()
+  ctx.ui = TUI(dry_mode=config.dry)
 
   try:
     # Print logo and dry run banner

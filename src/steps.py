@@ -22,7 +22,8 @@ from src.utils import (
 console = Console()
 
 
-def step_01_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
+def step_0_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
+  assert ctx.ui is not None
   config_items = [
     ("C library", ctx.config.libc),
     ("Keymap", ctx.config.keymap),
@@ -30,9 +31,7 @@ def step_01_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
     ("Timezone", ctx.config.timezone),
   ]
 
-  # Initialize TUI
-  if ctx.ui:
-    ctx.ui.initialize()
+  ctx.ui.initialize()
 
   # Print config information
   if ctx.dry:
@@ -84,27 +83,33 @@ def step_01_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
   ctx.root = f"/dev/mapper/{ctx.host}"
 
 
-def step_02_disk_setup(ctx: InstallerContext, _warnings: list[str]) -> None:
-  cmd(f"wipefs -af {ctx.disk}", ctx.dry)
-  cmd(f"sgdisk -Zo {ctx.disk}", ctx.dry)
-  cmd(f"parted -s {ctx.disk} mklabel gpt", ctx.dry)
-  cmd(f"parted -s {ctx.disk} mkpart ESP fat32 1MiB 513MiB", ctx.dry)
-  cmd(f"parted -s {ctx.disk} mkpart ENCRYPTED 513MiB 100%", ctx.dry)
-  cmd(f"parted -s {ctx.disk} set 1 esp on", ctx.dry)
-  cmd(f"partprobe {ctx.disk}", ctx.dry)
-  cmd(f"mkfs.vfat -F32 -n ESP {ctx.esp}", ctx.dry)
+def step_1_disk_setup(ctx: InstallerContext, _warnings: list[str]) -> None:
+  assert ctx.ui is not None
+  cmd(f"wipefs -af {ctx.disk}", ctx.dry, ctx.ui)
+  cmd(f"sgdisk -Zo {ctx.disk}", ctx.dry, ctx.ui)
+  cmd(f"parted -s {ctx.disk} mklabel gpt", ctx.dry, ctx.ui)
+  cmd(f"parted -s {ctx.disk} mkpart ESP fat32 1MiB 513MiB", ctx.dry, ctx.ui)
+  cmd(f"parted -s {ctx.disk} mkpart ENCRYPTED 513MiB 100%", ctx.dry, ctx.ui)
+  cmd(f"parted -s {ctx.disk} set 1 esp on", ctx.dry, ctx.ui)
+  cmd(f"partprobe {ctx.disk}", ctx.dry, ctx.ui)
+  cmd(f"mkfs.vfat -F32 -n ESP {ctx.esp}", ctx.dry, ctx.ui)
 
   assert ctx.luks_pass is not None
-  scmd(f"cryptsetup luksFormat --type luks1 --pbkdf-force-iterations 1000 {ctx.cryptroot} -d -", ctx.luks_pass, ctx.dry)
-  scmd(f"cryptsetup luksOpen {ctx.cryptroot} {ctx.host} -d -", ctx.luks_pass, ctx.dry)
-  cmd(f"mkfs.btrfs -L {ctx.host} {ctx.root}", ctx.dry)
-  cmd(f"mount -o compress=zstd,noatime {ctx.root} /mnt", ctx.dry)
+  scmd(
+    f"cryptsetup luksFormat --type luks1 --pbkdf-force-iterations 1000 {ctx.cryptroot} -d -",
+    ctx.luks_pass,
+    ctx.dry,
+    ctx.ui,
+  )
+  scmd(f"cryptsetup luksOpen {ctx.cryptroot} {ctx.host} -d -", ctx.luks_pass, ctx.dry, ctx.ui)
+  cmd(f"mkfs.btrfs -L {ctx.host} {ctx.root}", ctx.dry, ctx.ui)
+  cmd(f"mount -o compress=zstd,noatime {ctx.root} /mnt", ctx.dry, ctx.ui)
 
   subvols = ["", "home", "snapshots", "var_cache", "var_log"]
   for name in (f"/mnt/@{sub}" if sub else "/mnt/@" for sub in subvols):
-    cmd(f"btrfs subvolume create {name}", ctx.dry)
+    cmd(f"btrfs subvolume create {name}", ctx.dry, ctx.ui)
 
-  cmd("umount /mnt", ctx.dry)
+  cmd("umount /mnt", ctx.dry, ctx.ui)
 
   mount_base = "mount -o X-mount.mkdir,compress=zstd,noatime,subvol=@"
 
@@ -117,23 +122,25 @@ def step_02_disk_setup(ctx: InstallerContext, _warnings: list[str]) -> None:
   ]
 
   for subvol, path in mount_points:
-    cmd(f"{mount_base}{subvol} {ctx.root} {path}", ctx.dry)
+    cmd(f"{mount_base}{subvol} {ctx.root} {path}", ctx.dry, ctx.ui)
 
-  cmd("mkdir -p /mnt/boot/efi", ctx.dry)
-  cmd(f"mount {ctx.esp} /mnt/boot/efi", ctx.dry)
+  cmd("mkdir -p /mnt/boot/efi", ctx.dry, ctx.ui)
+  cmd(f"mount {ctx.esp} /mnt/boot/efi", ctx.dry, ctx.ui)
 
 
-def step_03_system_bootstrap(ctx: InstallerContext, _warnings: list[str]) -> None:
+def step_2_system_bootstrap(ctx: InstallerContext, _warnings: list[str]) -> None:
+  assert ctx.ui is not None
   distro = get_distro(ctx.distro_id, ctx.dry)
 
   for prep_cmd in distro.prepare_base_system():
-    cmd(prep_cmd, ctx.dry)
+    cmd(prep_cmd, ctx.dry, ctx.ui)
 
   base_pkgs = ["base", "linux"] if ctx.dry else distro.base_packages()
-  cmd(distro.install_base_system(base_pkgs, ctx.repository), ctx.dry)
+  cmd(distro.install_base_system(base_pkgs, ctx.repository), ctx.dry, ctx.ui)
 
 
-def step_04_system_installation_and_configuration(ctx: InstallerContext, warnings: list[str]) -> None:
+def step_3_system_installation_and_configuration(ctx: InstallerContext, warnings: list[str]) -> None:
+  assert ctx.ui is not None
   efi_uuid = (
     "DRY-RUN-EFI-UUID"
     if ctx.dry
@@ -172,7 +179,7 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext, warning
     "tmpfs /tmp tmpfs defaults,noatime,mode=1777 0 0",
   ]
 
-  write(fstab_entries, "/mnt/etc/fstab", ctx.dry)
+  write(fstab_entries, "/mnt/etc/fstab", ctx.dry, ctx.ui)
 
   sudoers_entries = [
     'Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"',
@@ -182,25 +189,25 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext, warning
     "@includedir /etc/sudoers.d",
   ]
 
-  write(sudoers_entries, "/mnt/etc/sudoers", ctx.dry)
+  write(sudoers_entries, "/mnt/etc/sudoers", ctx.dry, ctx.ui)
 
   defaults = load_defaults(ctx.distro_id)
   distro = get_distro(ctx.distro_id, ctx.dry)
 
   # fmt: off
-  write([f"{ctx.host}"], "/mnt/etc/hostname", ctx.dry)
-  write([f"127.0.0.1 localhost {ctx.host}", "::1 localhost"], "/mnt/etc/hosts", ctx.dry)
-  write([f"server {str(server)}" for server in defaults["ntp"]], "/mnt/etc/ntpd.conf", ctx.dry)
+  write([f"{ctx.host}"], "/mnt/etc/hostname", ctx.dry, ctx.ui)
+  write([f"127.0.0.1 localhost {ctx.host}", "::1 localhost"], "/mnt/etc/hosts", ctx.dry, ctx.ui)
+  write([f"server {str(server)}" for server in defaults["ntp"]], "/mnt/etc/ntpd.conf", ctx.dry, ctx.ui)
   # fmt: on
 
   for path, lines in distro.locale_settings(ctx.config.locale, ctx.config.libc):
-    write(lines, f"/mnt{path}", ctx.dry)
+    write(lines, f"/mnt{path}", ctx.dry, ctx.ui)
 
   for path, lines in distro.timezone_settings(ctx.config.keymap, ctx.config.timezone):
-    write(lines, f"/mnt{path}", ctx.dry)
+    write(lines, f"/mnt{path}", ctx.dry, ctx.ui)
 
   if ctx.config.libc == "glibc":
-    cmd(distro.reconfigure_locale(), ctx.dry)
+    cmd(distro.reconfigure_locale(), ctx.dry, ctx.ui)
 
   generate_chroot(
     "/mnt/root/chroot.sh",
@@ -209,41 +216,43 @@ def step_04_system_installation_and_configuration(ctx: InstallerContext, warning
     ctx.distro_name,
     ctx.dry,
     warnings,
+    ctx.ui,
   )
 
-  cmd("cp /etc/resolv.conf /mnt/etc", ctx.dry)
-  cmd("mount --types sysfs none /mnt/sys", ctx.dry)
-  cmd("mount --types proc none /mnt/proc", ctx.dry)
-  cmd("mount --rbind /run /mnt/run", ctx.dry)
-  cmd("mount --rbind /dev /mnt/dev", ctx.dry)
-  cmd("chroot /mnt /bin/bash -x /root/chroot.sh", ctx.dry)
+  cmd("cp /etc/resolv.conf /mnt/etc", ctx.dry, ctx.ui)
+  cmd("mount --types sysfs none /mnt/sys", ctx.dry, ctx.ui)
+  cmd("mount --types proc none /mnt/proc", ctx.dry, ctx.ui)
+  cmd("mount --rbind /run /mnt/run", ctx.dry, ctx.ui)
+  cmd("mount --rbind /dev /mnt/dev", ctx.dry, ctx.ui)
+  cmd("chroot /mnt /bin/bash -x /root/chroot.sh", ctx.dry, ctx.ui)
   assert ctx.user_name is not None
   assert ctx.user_pass is not None
-  scmd("chroot /mnt passwd root", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry)
-  scmd(f"chroot /mnt passwd {ctx.user_name}", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry)
+  scmd("chroot /mnt passwd root", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry, ctx.ui)
+  scmd(f"chroot /mnt passwd {ctx.user_name}", f"{ctx.user_pass}\n{ctx.user_pass}\n", ctx.dry, ctx.ui)
 
 
-def step_05_cleanup(ctx: InstallerContext, _warnings: list[str]) -> None:
-  cmd("rm -rf /mnt/root/chroot.sh", ctx.dry)
-  cmd("umount --recursive /mnt", ctx.dry)
+def step_4_cleanup(ctx: InstallerContext, _warnings: list[str]) -> None:
+  assert ctx.ui is not None
+  cmd("rm -rf /mnt/root/chroot.sh", ctx.dry, ctx.ui)
+  cmd("umount --recursive /mnt", ctx.dry, ctx.ui)
 
 
 def get_install_steps(ctx: InstallerContext) -> list[Callable[[InstallerContext, list[str]], None]]:
   """Get installation steps, skipping bootstrap and config for generic distro."""
   all_steps = [
-    step_01_settings,
-    step_02_disk_setup,
-    step_03_system_bootstrap,
-    step_04_system_installation_and_configuration,
-    step_05_cleanup,
+    step_0_settings,
+    step_1_disk_setup,
+    step_2_system_bootstrap,
+    step_3_system_installation_and_configuration,
+    step_4_cleanup,
   ]
 
   # Skip system bootstrap and configuration for generic distro
   if ctx.distro_id == "linux":
     return [
-      step_01_settings,
-      step_02_disk_setup,
-      step_05_cleanup,
+      step_0_settings,
+      step_1_disk_setup,
+      step_4_cleanup,
     ]
 
   return all_steps

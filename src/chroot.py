@@ -5,6 +5,7 @@ from rich.console import Console
 from src.utils import detect_gpu_vendors, get_gpu_packages
 from src.context import InstallerContext
 from src.distros import get_distro
+from src.tui import TUI
 from textwrap import dedent
 
 console = Console()
@@ -108,7 +109,13 @@ def _section_post_install(ctx: InstallerContext) -> str:
 
 
 def generate_chroot(
-  path: str, ctx: InstallerContext, luks_pass: str, distro_name: str, dry_run: bool, warnings: list[str]
+  path: str,
+  ctx: InstallerContext,
+  luks_pass: str,
+  distro_name: str,
+  dry_run: bool,
+  warnings: list[str],
+  ui: TUI,
 ) -> None:
   crypt_uuid = (
     "MOCK-CRYPT-UUID"
@@ -129,8 +136,8 @@ def generate_chroot(
     _section_post_install(ctx),
   ]
   if dry_run:
-    console.print("[bold green][dim][DRY RUN] Generated chroot script:[/][/]")
-    console.print(f"[bold green][dim]{'\n'.join(parts)}[/][/]")
+    ui.print("[bold green][dim][DRY RUN] Generated chroot script:[/][/]")
+    ui.print(f"[bold green][dim]{'\n'.join(parts)}[/][/]")
   else:
     with open(path, "w") as f:
       _ = f.write("\n".join(parts))

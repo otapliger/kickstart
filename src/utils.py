@@ -8,13 +8,15 @@ from rich.console import Console
 from rich.prompt import Prompt
 from src.validations import validate_defaults_json, validate_mirrors_json
 from src.types import DefaultsConfig, GPUVendor
+from src.tui import TUI
 
 console = Console()
 
 
-def cmd(command: str, dry_run: bool = False) -> None:
+def cmd(command: str, dry_run: bool, ui: TUI) -> None:
   if dry_run:
-    console.print(f"[bold green][dim][DRY RUN] {command}[/][/]")
+    message = f"[bold green][dim][DRY RUN] {command}[/][/]"
+    ui.print(message)
     return
 
   try:
@@ -25,10 +27,11 @@ def cmd(command: str, dry_run: bool = False) -> None:
     sys.exit(1)
 
 
-def scmd(command: str, stdin_data: str, dry_run: bool = False) -> None:
+def scmd(command: str, stdin_data: str, dry_run: bool, ui: TUI) -> None:
   """Execute a command with sensitive stdin data without exposing it in process list."""
   if dry_run:
-    console.print(f"[bold green][dim][DRY RUN] {command} (with stdin data)[/][/]")
+    message = f"[bold green][dim][DRY RUN] {command} (with stdin data)[/][/]"
+    ui.print(message)
     return
 
   try:
@@ -49,12 +52,13 @@ def scmd(command: str, stdin_data: str, dry_run: bool = False) -> None:
     sys.exit(1)
 
 
-def write(lines: list[str], path: str, dry_run: bool = False) -> None:
+def write(lines: list[str], path: str, dry_run: bool, ui: TUI) -> None:
   assert isinstance(lines, list)
   if dry_run:
-    console.print(f"[bold green][dim][DRY RUN] Writing to {path}:[/][/]")
+    message = f"[bold green][dim][DRY RUN] Writing to {path}:[/][/]"
+    ui.print(message)
     for line in lines:
-      console.print(f"[dim]{line}[/]")
+      ui.print(f"[dim]{line}[/]")
     return
 
   open(path, "w").close()
