@@ -2,7 +2,11 @@
 
 from importlib import import_module
 from typing import cast
+import sys
+from rich.console import Console
 from src.distros.protocol import DistroProtocol
+
+console = Console()
 
 __all__ = ["get_distro", "get_supported_distros", "DistroProtocol"]
 
@@ -28,11 +32,8 @@ def get_distro(distro_id: str, dry_mode: bool = False) -> DistroProtocol:
       return cast(DistroProtocol, module_as_object)
 
     else:
-      from src.utils import error
-      import sys
-
-      error(f"Unsupported distribution: {distro_id}")
-      error(f"No module found at src/distros/{distro_id}.py")
+      console.print(f"\n[bold red]Unsupported distribution: {distro_id}[/]")
+      console.print(f"\n[bold red]No module found at src/distros/{distro_id}.py[/]")
       sys.exit(1)
 
 

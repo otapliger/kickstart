@@ -1,12 +1,12 @@
 import subprocess
 import sys
 from typing import Callable
-from src.ansi_codes import bold, yellow, reset
+from rich.console import Console
+from rich.prompt import Confirm
 from src.context import InstallerContext
 from src.chroot import generate_chroot
 from src.distros import get_distro
 from src.utils import (
-  error,
   cmd,
   scmd,
   write,
@@ -17,14 +17,12 @@ from src.utils import (
   set_user,
   set_mirror,
   load_defaults,
-  collect_content_lines,
-  format_step_name,
 )
+
+console = Console()
 
 
 def step_01_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
-  defaults = load_defaults(ctx.distro_id)
-
   config_items = [
     ("C library", ctx.config.libc),
     ("Keymap", ctx.config.keymap),
@@ -32,28 +30,18 @@ def step_01_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
     ("Timezone", ctx.config.timezone),
   ]
 
-  content_lines = collect_content_lines(ctx.distro_id, ctx.dry)
-  status_line_position = len(content_lines) + 1
-  content_lines.append("")  # Placeholder for status bar
-  content_lines.append("")  # Empty line before scrolling region
-
-  # Initialize TUI with scrolling region
+  # Initialize TUI
   if ctx.ui:
-    ctx.ui.set_content(content_lines, status_line_position)
     ctx.ui.initialize()
-    steps = get_install_steps(ctx)
-    total_steps = len(steps)
-    first_step_name = format_step_name(steps[0].__name__)
-    ctx.ui.update_status(f"[▓▓░░░░░░░░] {first_step_name} · Step 1/{total_steps}")
 
-  # Print config information in scrolling body
+  # Print config information
   if ctx.dry:
-    print("Skipping root and system checks in dry run mode")
-    print()
+    console.print("Skipping root and system checks in dry run mode")
+    console.print()
 
   for label, value in config_items:
-    print(f" • {label}: {value}")
-  print()
+    console.print(f" • {label}: {value}")
+  console.print()
 
   # Select hostname: CLI > profile > interactive
   # fmt: off
@@ -69,27 +57,27 @@ def step_01_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
   ctx.user_name = set_user()
   ctx.user_pass = set_pass(ctx.user_name)
 
-  # Select repository: profile > CLI (if not default) > interactive
+  # Select repository: profile > CLI > interactive
   profile_repo = ctx.profile.config.repository if ctx.profile else None
 
   if profile_repo:
     ctx.repository = profile_repo
-    print(f"Using repository from profile: {ctx.repository}")
+    console.print(f"Using repository from profile: {ctx.repository}")
 
-  elif ctx.config.repository != defaults["repository"]:
+  elif ctx.config.repository is not None:
     ctx.repository = ctx.config.repository
-    print(f"Using repository from command line: {ctx.repository}")
+    console.print(f"Using repository from command line: {ctx.repository}")
 
   else:
     ctx.repository = set_mirror(ctx.distro_id)
 
-  warning = f"{bold}{yellow}WARNING:{reset}"
-  response = input(f"{warning} All data on {ctx.disk} will be erased. Are you sure you want to continue? [y/N]: ")
-  if response.lower() not in ("y", "yes"):
-    error("Installation aborted. No changes were made to the system.")
+  console.print(f"\n[bold yellow]WARNING:[/] All data on {ctx.disk} will be erased.", style="bold")
+  response = Confirm.ask("Are you sure you want to continue?", default=False)
+  if not response:
+    console.print("\n[bold red]Installation aborted. No changes were made to the system.[/]")
     sys.exit(0)
 
-  print()
+  console.print()
 
   ctx.cryptroot = "/dev/disk/by-partlabel/ENCRYPTED"
   ctx.esp = "/dev/disk/by-partlabel/ESP"

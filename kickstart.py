@@ -4,16 +4,19 @@ import argparse
 import os
 import sys
 from typing import override
-from src.ansi_codes import red, reset, yellow, bold
+from rich.console import Console
 from src.steps import get_install_steps
 from src.tui import TUI
-from src.utils import error, info, load_defaults, get_distro_info, format_step_name
+from src.utils import load_defaults, get_distro_info, format_step_name
 from src.types import DefaultsConfig, ContextConfig
 from src.context import InstallerContext
 from src.profiles import ProfileLoader
 from src.validations import validate_cli_arguments
+from src.ascii import print_logo
 from textwrap import dedent
 from argparse import Namespace
+
+console = Console()
 
 
 class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
@@ -43,7 +46,7 @@ class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
 def _check_system_requirements() -> None:
   """Check if the system meets installation requirements."""
   if os.geteuid() != 0:
-    error("Root privileges are required. Please re-run the script as root.")
+    console.print("\n[bold red]Root privileges are required. Please re-run the script as root.[/]")
     sys.exit(2)
 
 
@@ -102,8 +105,8 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
     "--repository",
     metavar="URL",
     type=str,
-    default=defaults["repository"],
-    help="override interactive mirror selection with specific repository URL [default: %(default)s]",
+    default=None,
+    help=f"override interactive mirror selection with specific repository URL [default: {defaults['repository']}]",
     dest="repository",
   )
 
@@ -154,7 +157,7 @@ def _create_context_config(args: Namespace) -> ContextConfig:
   return ContextConfig(
     dry=bool(getattr(args, "dry", False)),
     libc=str(getattr(args, "libc", "glibc")),
-    repository=str(getattr(args, "repository", "")),
+    repository=getattr(args, "repository", None),
     timezone=str(getattr(args, "timezone", "UTC")),
     keymap=str(getattr(args, "keymap", "us")),
     locale=str(getattr(args, "locale", "C")),
@@ -171,30 +174,26 @@ def _run_installation(ctx: InstallerContext, ui: TUI, warnings: list[str]) -> No
   for i, step in enumerate(steps, 1):
     step_name = format_step_name(step.__name__)
 
-    # Clear cached output from previous step
-    ui.clear_step_output()
-
     # Status line
-    filled = "▓▓" * i
-    empty = "░░" * (total_steps - i)
+    filled = "▓" * i
+    empty = "░" * (total_steps - i)
     progress_bar = f"[{filled}{empty}]"
-    ui.update_status(f"[{progress_bar}] {step_name} · Step {i}/{total_steps}")
+    ui.update_status(f"{progress_bar} {step_name} · Step {i}/{total_steps}")
 
     try:
       step(ctx, warnings)
 
     except KeyboardInterrupt:
       ui.cleanup()
-      print()
-      print(f"{red}Installation interrupted by user. Exiting...{reset}")
+      console.print("\n[bold red]Installation interrupted by user. Exiting...[/]")
       sys.exit(130)
 
     except Exception as e:
       ui.cleanup()
-      error(f"Step '{step_name}' failed with error: {e}")
-      error("Installation cannot continue.")
+      console.print(f"\n[bold red]Step '{step_name}' failed with error: {e}[/]")
+      console.print("\n[bold red]Installation cannot continue.[/]")
       if ctx.dry:
-        error("This error occurred during dry run - actual installation might fail.")
+        console.print("\n[bold red]This error occurred during dry run - actual installation might fail.[/]")
       sys.exit(1)
 
   # Clear status line when installation completes
@@ -221,7 +220,7 @@ def main() -> None:
       distro_name = profile.distro.capitalize()
       defaults = load_defaults(distro_id)
     except Exception as e:
-      error(f"Failed to load profile: {e}")
+      console.print(f"\n[bold red]Failed to load profile: {e}[/]")
       sys.exit(1)
 
   errors = validate_cli_arguments(
@@ -234,9 +233,9 @@ def main() -> None:
   )
 
   if errors:
-    error("Invalid arguments provided:")
-    print("\n".join(f" • {err}" for err in errors))
-    print(f"\n{yellow}Use --help for valid options{reset}")
+    console.print("\n[bold red]Invalid arguments provided:[/]")
+    console.print("\n".join(f" • {err}" for err in errors))
+    console.print("\n[yellow]Use --help for valid options[/]")
     sys.exit(1)
 
   if not config.dry:
@@ -255,11 +254,11 @@ def main() -> None:
 
         if ctx.profile.distro != ctx.distro_id:
           msg = f"Profile distro mismatch - profile requires '{ctx.profile.distro}' but system is '{ctx.distro_id}'"
-          error(msg)
+          console.print(f"\n[bold red]{msg}[/]")
           sys.exit(1)
 
       except Exception as e:
-        error(f"Failed to load profile: {e}")
+        console.print(f"\n[bold red]Failed to load profile: {e}[/]")
         sys.exit(1)
 
     # Apply profile configuration overrides to base config
@@ -278,35 +277,37 @@ def main() -> None:
   ctx.ui = TUI()
 
   try:
+    # Print logo and dry run banner
+    print_logo(ctx.distro_id)
+    console.print()
+    if config.dry:
+      console.print("[bold yellow]DRY RUN MODE[/] - No actual changes will be made to your system")
+      console.print()
+
     _run_installation(ctx, ctx.ui, warnings)
 
     if config.dry:
-      print("\n")
-      sys.stdout.flush()
+      console.print("\n")
 
       # Display collected warnings
       if warnings:
-        print(f"{yellow}{bold}Warnings encountered during dry run:{reset}")
+        console.print("[bold yellow]Warnings encountered during dry run:[/]")
         for warning in warnings:
-          print(f" • {warning}")
-        print()
-        sys.stdout.flush()
+          console.print(f" • {warning}")
+        console.print()
 
-      info("Dry run completed successfully!")
-      info("Run without --dry flag to perform actual installation.")
-      print()
-      sys.stdout.flush()
+      console.print("[bold green]Dry run completed successfully![/]")
+      console.print("[bold green]Run without --dry flag to perform actual installation.[/]")
+      console.print()
 
     else:
-      print("\n")
-      sys.stdout.flush()
-      info("Installation completed successfully!")
-      info("You can now reboot your system.")
-      print()
-      sys.stdout.flush()
+      console.print("\n")
+      console.print("[bold green]Installation completed successfully![/]")
+      console.print("[bold green]You can now reboot your system.[/]")
+      console.print()
 
   except Exception as e:
-    error(f"Unexpected error during installation: {e}")
+    console.print(f"\n[bold red]Unexpected error during installation: {e}[/]")
     sys.exit(1)
 
 
@@ -315,10 +316,9 @@ if __name__ == "__main__":
     main()
 
   except KeyboardInterrupt:
-    print()
-    print(f"{red}Installation interrupted. Exiting...{reset}")
+    console.print("\n[bold red]Installation interrupted. Exiting...[/]")
     sys.exit(130)
 
   except Exception as e:
-    error(f"Fatal error: {e}")
+    console.print(f"\n[bold red]Fatal error: {e}[/]")
     sys.exit(1)

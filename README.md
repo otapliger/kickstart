@@ -25,33 +25,6 @@ sudo python3 kickstart.py --libc musl --keymap colemak
 sudo python3 kickstart.py -p ./profiles/void/minimal.json
 ```
 
-## Interface
-
-```
-┌─────────────────────────────────────┐
-│ Logo (ASCII Art)                    │ Fixed Header
-│ DRY RUN MODE (if applicable)        │
-│                                     │
-│ [▓▓▓▓░░░░░░] Settings · Step 1/5    │ ← Status Bar
-│                                     │
-├─────────────────────────────────────┤
-│                                     │ ↕
-│ Skipping root and system checks...  │ │
-│                                     │ │
-│ • C library: glibc                  │ │
-│ • Keymap: uk                        │ │
-│ • Locale: en_GB.UTF-8               │ │
-│ • Timezone: Europe/London           │ │ Scrolling
-│                                     │ │ Content
-│ Choose a hostname: linux            │ │
-│                                     │ │
-│ Disks:                              │ │
-│   1. /dev/nvme0n1                   │ │
-│   ...                               │ │
-│                                     │ ↕
-└─────────────────────────────────────┘
-```
-
 ## Features
 
 - **Encryption**: LUKS1-on-BTRFS root filesystem

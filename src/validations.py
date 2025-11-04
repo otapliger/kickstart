@@ -165,7 +165,7 @@ def validate_mirrors_json(data: Any) -> list[MirrorData]:
 
 
 def validate_cli_arguments(
-  repository: str,
+  repository: str | None,
   timezone: str,
   locale: str,
   libc: str,
@@ -179,11 +179,13 @@ def validate_cli_arguments(
   """
   # Define validators as (condition, error_message) tuples
   validators = [
-    (validate_url(repository), f"Invalid repository URL: {repository}"),
     (validate_timezone(timezone), f"Invalid timezone: {timezone} (expected format: Region/City)"),
     (validate_locale(locale), f"Invalid locale: {locale} (expected format: language[_COUNTRY][.encoding][@modifier])"),
     (validate_libc(libc), f"Invalid libc: {libc} (must be 'glibc' or 'musl')"),
   ]
+
+  if repository:
+    validators.append((validate_url(repository), f"Invalid repository URL: {repository}"))
 
   if hostname:
     validators.append((validate_hostname(hostname), f"Invalid hostname: {hostname} (must follow RFC 1123 format)"))

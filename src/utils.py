@@ -1,42 +1,34 @@
 import subprocess
 import os
-import getpass
 import sys
 import re
 import json
-from io import StringIO
 from operator import itemgetter
-from src.ansi_codes import green, red, reset, gray, yellow
+from rich.console import Console
+from rich.prompt import Prompt
 from src.validations import validate_defaults_json, validate_mirrors_json
 from src.types import DefaultsConfig, GPUVendor
 
-
-def info(message: str) -> None:
-  print(f"{green}{message}{reset}")
-
-
-def error(message: str) -> None:
-  print()
-  print(f"{red}{message}{reset}")
+console = Console()
 
 
 def cmd(command: str, dry_run: bool = False) -> None:
   if dry_run:
-    info(f"{gray}[DRY RUN] {command}")
+    console.print(f"[bold green][dim][DRY RUN] {command}[/][/]")
     return
 
   try:
     _ = subprocess.run(command, check=True, shell=True)
 
   except subprocess.CalledProcessError as e:
-    error(f"Command '{command}' failed with error: {e}")
+    console.print(f"\n[bold red]Command '{command}' failed with error: {e}[/]")
     sys.exit(1)
 
 
 def scmd(command: str, stdin_data: str, dry_run: bool = False) -> None:
   """Execute a command with sensitive stdin data without exposing it in process list."""
   if dry_run:
-    info(f"{gray}[DRY RUN] {command} (with stdin data)")
+    console.print(f"[bold green][dim][DRY RUN] {command} (with stdin data)[/][/]")
     return
 
   try:
@@ -49,10 +41,10 @@ def scmd(command: str, stdin_data: str, dry_run: bool = False) -> None:
       raise subprocess.CalledProcessError(process.returncode, command, output=stdout, stderr=stderr)
 
   except subprocess.CalledProcessError as e:
-    error(f"Command '{command}' failed with error: {e}")
+    console.print(f"\n[bold red]Command '{command}' failed with error: {e}[/]")
 
     if e.stderr:
-      error(f"stderr: {e.stderr}")
+      console.print(f"\n[bold red]stderr: {e.stderr}[/]")
 
     sys.exit(1)
 
@@ -60,9 +52,9 @@ def scmd(command: str, stdin_data: str, dry_run: bool = False) -> None:
 def write(lines: list[str], path: str, dry_run: bool = False) -> None:
   assert isinstance(lines, list)
   if dry_run:
-    info(f"{gray}[DRY RUN] Writing to {path}:")
+    console.print(f"[bold green][dim][DRY RUN] Writing to {path}:[/][/]")
     for line in lines:
-      print(f"{gray}{line}{reset}")
+      console.print(f"[dim]{line}[/]")
     return
 
   open(path, "w").close()
@@ -73,17 +65,14 @@ def write(lines: list[str], path: str, dry_run: bool = False) -> None:
 
 def set_user(default: str | None = None) -> str:
   while True:
-    prompt = "Choose a username for your new user"
-    if default:
-      prompt += f" [{default}]"
-
-    prompt += ": "
-    user_name = input(prompt)
-    if not user_name and default:
-      user_name = default
+    user_name = Prompt.ask(
+      "Choose a username for your new user",
+      default=default or "",
+      show_default=bool(default),
+    )
 
     if not user_name:
-      error("A username is required to continue.")
+      console.print("\n[bold red]A username is required to continue.[/]")
       continue
 
     return user_name
@@ -91,74 +80,85 @@ def set_user(default: str | None = None) -> str:
 
 def set_pass(user_name: str) -> str:
   while True:
-    user_pass = getpass.getpass(f"Create a password for '{user_name}': ")
+    user_pass = Prompt.ask(
+      f"Create a password for '{user_name}'",
+      password=True,
+    )
     if not user_pass:
-      error("Password cannot be empty. Please enter a password.")
+      console.print("\n[bold red]Password cannot be empty. Please enter a password.[/]")
       continue
 
-    user_pass_check = getpass.getpass("Re-enter the password to confirm: ")
+    user_pass_check = Prompt.ask(
+      "Re-enter the password to confirm",
+      password=True,
+    )
     if user_pass != user_pass_check:
-      error("Passwords don't match. Please try again.")
+      console.print("\n[bold red]Passwords don't match. Please try again.[/]")
       continue
 
-    print()
+    console.print()
     return user_pass
 
 
 def set_host(default: str | None = None) -> str:
   while True:
-    prompt = "Choose a hostname for this system"
-    if default:
-      prompt += f" [{default}]"
-
-    prompt += ": "
-    host = input(prompt)
-    if not host and default:
-      host = default
+    host = Prompt.ask(
+      "Choose a hostname for this system",
+      default=default or "",
+      show_default=bool(default),
+    )
 
     if not host:
-      error("A hostname is required to continue.")
+      console.print("\n[bold red]A hostname is required to continue.[/]")
       continue
 
-    print()
+    console.print()
     return host
 
 
 def set_disk() -> str:
   while True:
     disks = [disk for disk in os.listdir("/dev") if re.match(r"^(nvme\d+n\d+|sd[a-z]+|vd[a-z]+|disk\d+)$", disk)]
-    print("Disks:")
+    console.print("Disks:")
     for i, disk in enumerate(disks, start=1):
-      print(f"  {i}. /dev/{disk}")
+      console.print(f"  {i}. /dev/{disk}")
+
+    console.print()
+    choices = "/".join(str(i) for i in range(1, len(disks) + 1))
+    disk_choice = Prompt.ask(f"Select the destination disk [bold magenta][{choices}][/bold magenta]")
 
     try:
-      print()
-      disk_choice = int(input("Select the destination disk: "))
-
+      disk_choice_int = int(disk_choice)
     except ValueError:
-      error("Invalid input. Please enter a number corresponding to the disk.")
+      console.print("\n[bold red]Please select one of the available options[/]")
       continue
 
-    if disk_choice < 1 or disk_choice > len(disks):
-      error("Invalid selection. Please choose a valid disk number.")
+    if disk_choice_int < 1 or disk_choice_int > len(disks):
+      console.print("\n[bold red]Please select one of the available options[/]")
       continue
 
-    return f"/dev/{disks[disk_choice - 1]}"
+    return f"/dev/{disks[disk_choice_int - 1]}"
 
 
 def set_luks() -> str:
   while True:
-    luks_pass = getpass.getpass("Set a password for the disk encryption: ")
+    luks_pass = Prompt.ask(
+      "Set a password for the disk encryption",
+      password=True,
+    )
     if not luks_pass:
-      error("You need to enter a password for the disk encryption, please try again.")
+      console.print("\n[bold red]You need to enter a password for the disk encryption, please try again.[/]")
       continue
 
-    luks_pass_check = getpass.getpass("Verify the password: ")
+    luks_pass_check = Prompt.ask(
+      "Verify the password",
+      password=True,
+    )
     if luks_pass != luks_pass_check:
-      error("Passwords don't match, please try again.")
+      console.print("\n[bold red]Passwords don't match, please try again.[/]")
       continue
 
-    print()
+    console.print()
     return luks_pass
 
 
@@ -189,11 +189,11 @@ def load_defaults(distro_id: str) -> DefaultsConfig:
       )
 
   except (FileNotFoundError, json.JSONDecodeError) as e:
-    error(f"Error loading config.json: {e}")
+    console.print(f"\n[bold red]Error loading config.json: {e}[/]")
     sys.exit(1)
 
   except (KeyError, ValueError) as e:
-    error(f"Invalid config.json format: {e}")
+    console.print(f"\n[bold red]Invalid config.json format: {e}[/]")
     sys.exit(1)
 
 
@@ -213,11 +213,11 @@ def load_mirrors(distro_id: str) -> list[tuple[str, str, str]]:
       mirrors = list(map(extract_mirror, data))
 
   except (FileNotFoundError, json.JSONDecodeError) as e:
-    error(f"Error loading config.json: {e}")
+    console.print(f"\n[bold red]Error loading config.json: {e}[/]")
     sys.exit(1)
 
   except ValueError as e:
-    error(f"Invalid config.json format: {e}")
+    console.print(f"\n[bold red]Invalid config.json format: {e}[/]")
     sys.exit(1)
 
   return mirrors
@@ -228,40 +228,46 @@ def set_mirror(distro_id: str) -> str:
   default_repository = load_defaults(distro_id)["repository"]
   mirrors = load_mirrors(distro_id)
   if not mirrors:
-    error("No mirrors available. Using default.")
+    console.print("\n[bold red]No mirrors available. Using default.[/]")
     return str(default_repository)
 
-  print("Available mirrors:")
+  console.print("Available mirrors:")
 
   for i, (url, region, location) in enumerate(mirrors, start=1):
     if url == default_repository:
-      print(f"  {i}. {region} - {location} (default)")
+      console.print(f"  {i}. {region} - {location} (default)")
 
     else:
-      print(f"  {i}. {region} - {location}")
+      console.print(f"  {i}. {region} - {location}")
 
   while True:
     try:
-      print()
+      console.print()
       default_mirror = next(
         (f"{region} - {location}" for url, region, location in mirrors if url == default_repository), "default"
       )
-      choice = input(f"Select a mirror [{default_mirror}]: ").strip()
-      if not choice:
+
+      choice = Prompt.ask(
+        "Select a mirror",
+        default=default_mirror,
+        show_default=True,
+      ).strip()
+
+      if choice == default_mirror:
         return default_repository
 
       mirror_choice = int(choice)
       if 1 <= mirror_choice <= len(mirrors):
         selected_url = mirrors[mirror_choice - 1][0]
-        print(f"Selected: {selected_url}")
-        print()
+        console.print(f"Selected: {selected_url}")
+        console.print()
         return selected_url
 
       else:
-        error(f"Invalid selection. Please choose between 1 and {len(mirrors)}.")
+        console.print(f"\n[bold red]Invalid selection. Please choose between 1 and {len(mirrors)}.[/]")
 
     except ValueError:
-      error("Invalid input. Please enter a number or press Enter for default.")
+      console.print("\n[bold red]Invalid input. Please enter a number or press Enter for default.[/]")
 
 
 def get_distro_info(file_path: str = "/etc/os-release") -> tuple[str, str]:
@@ -394,35 +400,6 @@ def get_gpu_packages(
   }
 
   return sorted(packages)
-
-
-def collect_content_lines(distro_id: str, dry_mode: bool = False) -> list[str]:
-  """
-  Collect all UI content (logo, dry run message) into a list of lines.
-
-  Args:
-      distro_id: Distribution identifier for logo selection
-      dry_mode: Whether dry run mode is enabled
-
-  Returns:
-      List of strings representing each line of the UI content
-  """
-  from src.ascii_art import print_logo
-  from src.ansi_codes import bold
-
-  lines = []
-  last_stdout = sys.stdout
-  sys.stdout = StringIO()
-  print_logo(distro_id)
-  logo_output = sys.stdout.getvalue()
-  sys.stdout = last_stdout
-  lines.extend(logo_output.rstrip("\n").split("\n"))
-
-  if dry_mode:
-    lines.append(f"{yellow}{bold}DRY RUN MODE{reset} - No actual changes will be made to your system")
-  lines.append("")
-
-  return lines
 
 
 def format_step_name(name: str) -> str:

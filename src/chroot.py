@@ -1,11 +1,13 @@
 import os
 import subprocess
 import json
-from src.ansi_codes import gray, reset
-from src.utils import info, detect_gpu_vendors, get_gpu_packages
+from rich.console import Console
+from src.utils import detect_gpu_vendors, get_gpu_packages
 from src.context import InstallerContext
 from src.distros import get_distro
 from textwrap import dedent
+
+console = Console()
 
 
 def _section_header() -> str:
@@ -127,8 +129,8 @@ def generate_chroot(
     _section_post_install(ctx),
   ]
   if dry_run:
-    info(f"{gray}[DRY RUN] Generated chroot script:{reset}")
-    info(f"{gray}{'\n'.join(parts)}{reset}")
+    console.print("[bold green][dim][DRY RUN] Generated chroot script:[/][/]")
+    console.print(f"[bold green][dim]{'\n'.join(parts)}[/][/]")
   else:
     with open(path, "w") as f:
       _ = f.write("\n".join(parts))

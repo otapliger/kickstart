@@ -13,9 +13,10 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
-from src.ansi_codes import yellow, reset
-from src.utils import error
+from rich.console import Console
 from src.validations import validate_profile_json
+
+console = Console()
 
 
 @dataclass
@@ -120,7 +121,7 @@ class ProfileLoader:
 
         content_type = response.headers.get("Content-Type", "")
         if content_type and "application/json" not in content_type and "text/json" not in content_type:
-          print(f"{yellow}Warning: Server returned Content-Type '{content_type}', expected JSON{reset}")
+          console.print(f"[yellow]Warning: Server returned Content-Type '{content_type}', expected JSON[/]")
 
         parsed_data = json.loads(response.read().decode("utf-8"))
         if not isinstance(parsed_data, dict):
@@ -178,9 +179,9 @@ class ProfileLoader:
 
       validation_issues = validate_profile_json(data)
       if validation_issues:
-        error(f"Profile validation failed for '{source}':")
+        console.print(f"\n[bold red]Profile validation failed for '{source}':[/]")
         for issue in validation_issues:
-          print(f" • {issue}")
+          console.print(f" • {issue}")
 
         raise ValueError(f"Profile contains {len(validation_issues)} validation error(s)")
 
@@ -188,5 +189,5 @@ class ProfileLoader:
       return profile
 
     except Exception as e:
-      error(f"Failed to load profile from '{source}': {e}")
+      console.print(f"\n[bold red]Failed to load profile from '{source}': {e}[/]")
       raise

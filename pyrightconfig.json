@@ -1,0 +1,11 @@
+{
+  "pythonVersion": "3.12",
+  "include": ["."],
+  "exclude": ["**/node_modules", "**/__pycache__"],
+  "typeCheckingMode": "recommended",
+  "reportUnknownParameterType": "none",
+  "reportUnknownArgumentType": "none",
+  "reportUnknownLambdaType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownMemberType": "none"
+}

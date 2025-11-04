@@ -43,7 +43,7 @@ class ContextConfig:
 
   dry: bool
   libc: str
-  repository: str
+  repository: str | None
   timezone: str
   keymap: str
   locale: str
