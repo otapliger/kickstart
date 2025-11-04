@@ -30,3 +30,7 @@ $RECYCLE.BIN/
 *.swp
 *.swo
 *.bak
+
+# Build artifacts
+dist/
+build/
