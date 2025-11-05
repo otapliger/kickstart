@@ -7,7 +7,7 @@ Automated installer for Linux distributions with encrypted BTRFS and sensible de
 ## Supported Distros
 
 - **Void Linux** (glibc/musl)
-- **Arch Linux**
+- **Arch Linux** ⚠️ Work in progress - installer not yet functional
 
 ## Features
 
@@ -24,10 +24,10 @@ Automated installer for Linux distributions with encrypted BTRFS and sensible de
 -p, --profile SOURCE   Load profile from file or URL
 -r, --repository URL   Override mirror selection
 -k, --keymap KEYMAP    Keyboard layout
--t, --timezone TZ      System timezone (Region/City)
+-t, --timezone TZ      System timezone
 --hostname NAME        System hostname
 --locale LOCALE        System locale
---libc LIBC            C library (glibc/musl)
+--libc LIBC            C library
 --version              Show version
 ```
 
