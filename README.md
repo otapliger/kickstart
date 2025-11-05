@@ -37,10 +37,10 @@ Profiles are JSON files that define installation configurations:
 
 ```bash
 # Local profile
-sudo python3 kickstart.py -p ./profiles/void/minimal.json
+curl -fsSL https://otapliger.github.io/kickstart/bootstrap.sh | sh -- -p profiles/void/minimal.json
 
 # Remote profile
-sudo python3 kickstart.py -p https://example.com/profile.json
+curl -fsSL https://otapliger.github.io/kickstart/bootstrap.sh | sh -- -p https://example.com/profile.json
 ```
 
 Example profile structure:
