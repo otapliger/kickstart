@@ -1,5 +1,6 @@
 import sys
 import time
+import shutil
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -66,8 +67,13 @@ class TUI:
       # Add to output buffer and update layout
       self.output_lines.append(message)
 
-      # Keep last N lines to prevent memory issues
-      display_lines = self.output_lines[-100:]
+      # Calculate visible lines based on terminal height minus status panel
+      terminal_height = shutil.get_terminal_size().lines
+      # Status panel takes 3 lines, leave some buffer
+      visible_lines = max(1, terminal_height - 4)
+
+      # Show only the last N lines that fit on screen
+      display_lines = self.output_lines[-visible_lines:]
       output_text = "\n".join(display_lines)
       self.layout["output"].update(Text.from_markup(output_text))
 
