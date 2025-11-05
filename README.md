@@ -49,7 +49,6 @@ Example profile structure:
 {
   "name": "Minimal System",
   "description": "Bare minimum installation",
-  "version": "1.0",
   "distro": "void",
   "config": {
     "libc": "glibc",

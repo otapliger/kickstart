@@ -1,7 +1,6 @@
 {
   "name": "Niri Wayland",
   "description": "Niri compositor with multimedia support",
-  "version": "1.0",
   "distro": "void",
   "config": {
     "libc": "glibc",

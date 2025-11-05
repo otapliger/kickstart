@@ -45,7 +45,6 @@ class InstallationProfile:
   name: str
   description: str
   distro: str
-  version: str = "1.0"
   config: ProfileConfig = field(default_factory=ProfileConfig)
   packages: PackageSelection = field(default_factory=PackageSelection)
   post_install_commands: list[str] = field(default_factory=list)
@@ -56,7 +55,6 @@ class InstallationProfile:
     """Create profile from dictionary."""
     name = str(data["name"])
     description = str(data["description"])
-    version = str(data.get("version", "1.0"))
     distro = str(data["distro"])
 
     config_data = data.get("config", {})
@@ -88,7 +86,6 @@ class InstallationProfile:
     return cls(
       name=name,
       description=description,
-      version=version,
       distro=distro,
       config=config,
       packages=packages,
