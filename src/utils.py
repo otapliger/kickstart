@@ -83,7 +83,7 @@ def set_disk() -> tuple[str, str]:
       console.print(f" {i}. /dev/{disk}")
 
     console.print()
-    choices = "".join(str(i + 1) for i in range(len(disks)))
+    choices = [str(i) for i in range(1, len(disks) + 1)]
     disk_choice = IntegerPrompt.ask("Choose the destination disk (enter number)", choices=choices)
     luks_pass = PasswordPrompt.ask("Set disk encryption password (hidden)")
     return f"/dev/{disks[disk_choice - 1]}", luks_pass
@@ -110,9 +110,9 @@ def set_mirror(distro_id: str) -> str:
     console.print(f" {i}. {location} ({region})")
 
   console.print()
-  choices = "".join(str(i + 1) for i in range(len(mirrors)))
-  idx = IntegerPrompt.ask("Choose a mirror (enter number)", choices=choices, default=1)
-  selected_url = mirrors[idx - 1][0]
+  choices = [str(i) for i in range(1, len(mirrors) + 1)]
+  mirror_choice = IntegerPrompt.ask("Choose a mirror (enter number)", choices=choices, default=1)
+  selected_url = mirrors[mirror_choice - 1][0]
   return selected_url
 
 
