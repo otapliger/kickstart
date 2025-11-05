@@ -5,8 +5,8 @@ import re
 import json
 from operator import itemgetter
 from rich.console import Console
-from rich.prompt import Prompt
 from src.validations import validate_defaults_json, validate_mirrors_json
+from src.input import HostnamePrompt, IntegerPrompt, UsernamePrompt, PasswordPrompt
 from src.types import DefaultsConfig, GPUVendor
 from src.tui import TUI
 
@@ -67,103 +67,53 @@ def write(lines: list[str], path: str, dry_run: bool, ui: TUI) -> None:
       print(line, file=f)
 
 
-def set_user(default: str | None = None) -> str:
-  while True:
-    user_name = Prompt.ask(
-      "Choose a username for your new user",
-      default=default or "",
-      show_default=bool(default),
-    )
-
-    if not user_name:
-      console.print("\n[bold red]A username is required to continue.[/]")
-      continue
-
-    return user_name
-
-
-def set_pass(user_name: str) -> str:
-  while True:
-    user_pass = Prompt.ask(
-      f"Create a password for '{user_name}'",
-      password=True,
-    )
-    if not user_pass:
-      console.print("\n[bold red]Password cannot be empty. Please enter a password.[/]")
-      continue
-
-    user_pass_check = Prompt.ask(
-      "Re-enter the password to confirm",
-      password=True,
-    )
-    if user_pass != user_pass_check:
-      console.print("\n[bold red]Passwords don't match. Please try again.[/]")
-      continue
-
-    console.print()
-    return user_pass
-
-
 def set_host(default: str | None = None) -> str:
+  host = HostnamePrompt.ask("Enter a hostname for the system", default=default)
+  return host
+
+
+def set_disk() -> tuple[str, str]:
   while True:
-    host = Prompt.ask(
-      "Choose a hostname for this system",
-      default=default or "",
-      show_default=bool(default),
-    )
-
-    if not host:
-      console.print("\n[bold red]A hostname is required to continue.[/]")
-      continue
-
     console.print()
-    return host
+    disks_regex = r"^(nvme\d+n\d+|sd[a-z]+|vd[a-z]+|disk\d+)$"
+    disks = [disk for disk in os.listdir("/dev") if re.match(disks_regex, disk)]
 
-
-def set_disk() -> str:
-  while True:
-    disks = [disk for disk in os.listdir("/dev") if re.match(r"^(nvme\d+n\d+|sd[a-z]+|vd[a-z]+|disk\d+)$", disk)]
     console.print("Disks:")
     for i, disk in enumerate(disks, start=1):
-      console.print(f"  {i}. /dev/{disk}")
+      console.print(f" {i}. /dev/{disk}")
 
     console.print()
-    choices = "/".join(str(i) for i in range(1, len(disks) + 1))
-    disk_choice = Prompt.ask(f"Select the destination disk [bold magenta][{choices}][/bold magenta]")
-
-    try:
-      disk_choice_int = int(disk_choice)
-    except ValueError:
-      console.print("\n[bold red]Please select one of the available options[/]")
-      continue
-
-    if disk_choice_int < 1 or disk_choice_int > len(disks):
-      console.print("\n[bold red]Please select one of the available options[/]")
-      continue
-
-    return f"/dev/{disks[disk_choice_int - 1]}"
+    choices = "".join(str(i + 1) for i in range(len(disks)))
+    disk_choice = IntegerPrompt.ask("Choose the destination disk (enter number)", choices=choices)
+    luks_pass = PasswordPrompt.ask("Set disk encryption password (hidden)")
+    return f"/dev/{disks[disk_choice - 1]}", luks_pass
 
 
-def set_luks() -> str:
+def set_user() -> tuple[str, str]:
   while True:
-    luks_pass = Prompt.ask(
-      "Set a password for the disk encryption",
-      password=True,
-    )
-    if not luks_pass:
-      console.print("\n[bold red]You need to enter a password for the disk encryption, please try again.[/]")
-      continue
-
-    luks_pass_check = Prompt.ask(
-      "Verify the password",
-      password=True,
-    )
-    if luks_pass != luks_pass_check:
-      console.print("\n[bold red]Passwords don't match, please try again.[/]")
-      continue
-
     console.print()
-    return luks_pass
+    user_name = UsernamePrompt.ask("Enter username for the new account")
+    user_pass = PasswordPrompt.ask("Provide user password (hidden)")
+    return user_name, user_pass
+
+
+def set_mirror(distro_id: str) -> str:
+  default_repository = load_defaults(distro_id)["repository"]
+  mirrors = load_mirrors(distro_id)
+  if not mirrors:
+    console.print("\n[bold red]No mirrors available. Using default.[/]")
+    return str(default_repository)
+
+  console.print()
+  console.print("Available mirrors:")
+  for i, (_url, region, location) in enumerate(mirrors, start=1):
+    console.print(f" {i}. {location} ({region})")
+
+  console.print()
+  choices = "".join(str(i + 1) for i in range(len(mirrors)))
+  idx = IntegerPrompt.ask("Choose a mirror (enter number)", choices=choices, default=1)
+  selected_url = mirrors[idx - 1][0]
+  return selected_url
 
 
 def load_defaults(distro_id: str) -> DefaultsConfig:
@@ -227,53 +177,6 @@ def load_mirrors(distro_id: str) -> list[tuple[str, str, str]]:
   return mirrors
 
 
-def set_mirror(distro_id: str) -> str:
-  """Allow user to select a mirror for the specified distro."""
-  default_repository = load_defaults(distro_id)["repository"]
-  mirrors = load_mirrors(distro_id)
-  if not mirrors:
-    console.print("\n[bold red]No mirrors available. Using default.[/]")
-    return str(default_repository)
-
-  console.print("Available mirrors:")
-
-  for i, (url, region, location) in enumerate(mirrors, start=1):
-    if url == default_repository:
-      console.print(f"  {i}. {region} - {location} (default)")
-
-    else:
-      console.print(f"  {i}. {region} - {location}")
-
-  while True:
-    try:
-      console.print()
-      default_mirror = next(
-        (f"{region} - {location}" for url, region, location in mirrors if url == default_repository), "default"
-      )
-
-      choice = Prompt.ask(
-        "Select a mirror",
-        default=default_mirror,
-        show_default=True,
-      ).strip()
-
-      if choice == default_mirror:
-        return default_repository
-
-      mirror_choice = int(choice)
-      if 1 <= mirror_choice <= len(mirrors):
-        selected_url = mirrors[mirror_choice - 1][0]
-        console.print(f"Selected: {selected_url}")
-        console.print()
-        return selected_url
-
-      else:
-        console.print(f"\n[bold red]Invalid selection. Please choose between 1 and {len(mirrors)}.[/]")
-
-    except ValueError:
-      console.print("\n[bold red]Invalid input. Please enter a number or press Enter for default.[/]")
-
-
 def get_distro_info(file_path: str = "/etc/os-release") -> tuple[str, str]:
   """
   Extract NAME and ID from os-release file.
@@ -316,6 +219,52 @@ def get_distro_info(file_path: str = "/etc/os-release") -> tuple[str, str]:
     return "Linux", "linux"
 
 
+def get_gpu_packages(distro_id: str, warnings: list[str] | None = None) -> list[str]:
+  """
+  Get the appropriate GPU driver packages for a distro based on detected vendors.
+
+  Args:
+      distro_id: Distribution identifier
+      warnings: Optional list to append warnings (used when detection fails or tools are unavailable).
+
+  Returns:
+      Sorted list of unique package names (strings) recommended for detected GPU vendors.
+      Returns an empty list if no GPU package mappings are available for the given distro.
+  """
+  vendors = detect_gpu_vendors(warnings)
+
+  config_file = os.path.join(os.path.dirname(__file__), "../config.json")
+
+  with open(config_file, "r") as f:
+    config_data = json.load(f)
+
+    if "gpu_packages" not in config_data:
+      return []
+
+    if distro_id not in config_data["gpu_packages"]:
+      return []
+
+    gpu_config = config_data["gpu_packages"][distro_id]
+
+  vendor_key_map = {
+    GPUVendor.INTEL: "intel",
+    GPUVendor.AMD: "amd",
+    GPUVendor.NVIDIA: "nvidia",
+    GPUVendor.UNKNOWN: "unknown",
+  }
+
+  packages = {
+    pkg
+    for vendor in vendors
+    if (vendor_key := vendor_key_map.get(vendor))
+    if vendor_key in gpu_config
+    for pkg in gpu_config[vendor_key]
+    if isinstance(gpu_config[vendor_key], list)
+  }
+
+  return sorted(packages)
+
+
 def detect_gpu_vendors(warnings: list[str] | None = None) -> list[GPUVendor]:
   """
   Detect GPU vendors present in the system by examining lspci output.
@@ -356,54 +305,6 @@ def detect_gpu_vendors(warnings: list[str] | None = None) -> list[GPUVendor]:
     if warnings is not None:
       warnings.append("Install pciutils to enable GPU detection")
     return [GPUVendor.UNKNOWN]
-
-
-def get_gpu_packages(
-  distro_id: str, vendors: list[GPUVendor] | None = None, warnings: list[str] | None = None
-) -> list[str]:
-  """
-  Get the appropriate GPU driver packages for a distro based on detected vendors.
-
-  Args:
-      distro_id: Distribution identifier
-      vendors: Optional list of GPU vendors
-
-  Returns:
-      List of package names for the detected GPU vendors
-  """
-  if vendors is None:
-    vendors = detect_gpu_vendors(warnings)
-
-  config_file = os.path.join(os.path.dirname(__file__), "../config.json")
-
-  with open(config_file, "r") as f:
-    config_data = json.load(f)
-
-    if "gpu_packages" not in config_data:
-      return []
-
-    if distro_id not in config_data["gpu_packages"]:
-      return []
-
-    gpu_config = config_data["gpu_packages"][distro_id]
-
-  vendor_key_map = {
-    GPUVendor.INTEL: "intel",
-    GPUVendor.AMD: "amd",
-    GPUVendor.NVIDIA: "nvidia",
-    GPUVendor.UNKNOWN: "unknown",
-  }
-
-  packages = {
-    pkg
-    for vendor in vendors
-    if (vendor_key := vendor_key_map.get(vendor))
-    if vendor_key in gpu_config
-    for pkg in gpu_config[vendor_key]
-    if isinstance(gpu_config[vendor_key], list)
-  }
-
-  return sorted(packages)
 
 
 def format_step_name(name: str) -> str:

@@ -186,7 +186,7 @@ def _run_installation(ctx: InstallerContext, ui: TUI, warnings: list[str]) -> No
 
     except KeyboardInterrupt:
       ui.cleanup()
-      console.print("\n[bold red]Installation interrupted by user. Exiting...[/]")
+      console.print("\n\n[bold red]Installation interrupted by user. Exiting...[/]")
       sys.exit(130)
 
     except Exception as e:

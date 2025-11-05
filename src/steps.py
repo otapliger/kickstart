@@ -12,8 +12,6 @@ from src.utils import (
   write,
   set_disk,
   set_host,
-  set_luks,
-  set_pass,
   set_user,
   set_mirror,
   load_defaults,
@@ -51,21 +49,19 @@ def step_0_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
   )
   # fmt: on
 
-  ctx.disk = set_disk()
-  ctx.luks_pass = set_luks()
-  ctx.user_name = set_user()
-  ctx.user_pass = set_pass(ctx.user_name)
+  ctx.disk, ctx.luks_pass = set_disk()
+  ctx.user_name, ctx.user_pass = set_user()
 
   # Select repository: profile > CLI > interactive
   profile_repo = ctx.profile.config.repository if ctx.profile else None
 
   if profile_repo:
     ctx.repository = profile_repo
-    console.print(f"Using repository from profile: {ctx.repository}")
+    console.print(f"\nUsing repository from profile: {ctx.repository}")
 
   elif ctx.config.repository is not None:
     ctx.repository = ctx.config.repository
-    console.print(f"Using repository from command line: {ctx.repository}")
+    console.print(f"\nUsing repository from command line: {ctx.repository}")
 
   else:
     ctx.repository = set_mirror(ctx.distro_id)

@@ -48,11 +48,7 @@ def _get_package_list(ctx: InstallerContext, warnings: list[str]) -> list[str]:
       return []
     default_pkgs: list[str] = config_data["packages"][ctx.distro_id]
 
-  gpu_packages = get_gpu_packages(
-    ctx.distro_id,
-    detect_gpu_vendors(warnings if ctx.dry else None),
-    warnings if ctx.dry else None,
-  )
+  gpu_packages = get_gpu_packages(ctx.distro_id, warnings if ctx.dry else None)
   profile_pkgs = ctx.profile.packages if ctx.profile else None
 
   # fmt: off

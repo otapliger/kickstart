@@ -18,6 +18,34 @@ from src.types import MirrorData
 # Functions that validate data and return boolean or list of issues
 
 
+def validate_username(username: str) -> bool:
+  max_len = 32
+
+  if not username:
+    return False
+  if username[0] == "":
+    return False
+  if username[0] == "-":
+    return False
+  if len(username) > max_len:
+    return False
+  if username.isdigit():
+    return False
+
+  def _make_username_pattern() -> re.Pattern[str]:
+    start_cls = "a-z_"
+    body_cls = start_cls + "0-9_-"
+    pattern = rf"^[{start_cls}][{body_cls}]{{0,{max_len - 1}}}$"
+    return re.compile(pattern)
+
+  pattern = _make_username_pattern()
+  return bool(pattern.fullmatch(username))
+
+
+def validate_password(password: str) -> bool:
+  return len(password.strip()) > 1
+
+
 def validate_url(url: str) -> bool:
   """Validate that a URL is properly formatted."""
   if not url:
