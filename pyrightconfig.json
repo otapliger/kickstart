@@ -1,8 +1,10 @@
 {
+  "venvPath": ".",
+  "venv": ".venv",
   "pythonVersion": "3.12",
-  "include": ["."],
-  "exclude": ["**/node_modules", "**/__pycache__"],
-  "typeCheckingMode": "recommended",
+  "include": ["src", "kickstart.py"],
+  "exclude": ["**/__pycache__", "**/.venv/**"],
+  "typeCheckingMode": "basic",
   "reportUnknownParameterType": "none",
   "reportUnknownArgumentType": "none",
   "reportUnknownLambdaType": "none",
