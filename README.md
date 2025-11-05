@@ -6,8 +6,8 @@ Automated installer for Linux distributions with encrypted BTRFS and sensible de
 
 ## Supported Distros
 
-- **Void Linux** (glibc/musl)
-- **Arch Linux** ⚠️ Work in progress - installer not yet functional
+- **Void Linux**
+- **Arch Linux** - ⚠️ installer not yet functional, work in progress
 
 ## Features
 
