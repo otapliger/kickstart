@@ -48,7 +48,7 @@ class PasswordPrompt:
 
       user_pass_check = Prompt.ask("Verify the password", password=True)
       if user_pass != user_pass_check:
-        console.print("\n[bold red]Passwords don't match, please try again.[/]")
+        console.print("\n[prompt.invalid]Passwords don't match, please try again.[/]")
         continue
 
       return user_pass
