@@ -9,22 +9,6 @@ Automated installer for Linux distributions with encrypted BTRFS and sensible de
 - **Void Linux** (glibc/musl)
 - **Arch Linux**
 
-## Quick Start
-
-```bash
-# Preview installation (recommended)
-python3 kickstart.py --dry
-
-# Install with defaults
-sudo python3 kickstart.py
-
-# Custom configuration
-sudo python3 kickstart.py --libc musl --keymap colemak
-
-# Use a profile
-sudo python3 kickstart.py -p ./profiles/void/minimal.json
-```
-
 ## Features
 
 - **Encryption**: LUKS1-on-BTRFS root filesystem

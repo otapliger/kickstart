@@ -1,0 +1,116 @@
+name: Build Kickstart
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build kickstart with Docker (buildx)
+        working-directory: kickstart
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --output type=local,dest=dist \
+            -t kickstart-builder \
+            -f Dockerfile \
+            .
+
+      - name: Verify binary was produced
+        run: |
+          if [ ! -f kickstart/dist/kickstart-linux-x86_64 ]; then
+            echo "Expected binary not found: kickstart/dist/kickstart-linux-x86_64"
+            echo "Listing kickstart/dist for debugging:"
+            ls -la kickstart/dist || true
+            exit 1
+          fi
+
+      - name: Create checksum for binary
+        working-directory: kickstart
+        run: |
+          cd dist
+          sha256sum kickstart-linux-x86_64 > kickstart-linux-x86_64.sha256
+          echo "Created checksum for binary:"
+          ls -lh kickstart-linux-x86_64 kickstart-linux-x86_64.sha256
+          cat kickstart-linux-x86_64.sha256
+
+      - name: Upload distribution artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kickstart-linux-x86_64
+          path: |
+            kickstart/dist/kickstart-linux-x86_64
+            kickstart/dist/kickstart-linux-x86_64.sha256
+          retention-days: 1
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: kickstart-linux-x86_64
+          path: dist
+
+      - name: Show artifacts
+        run: |
+          ls -lah dist
+
+      - name: Get short SHA
+        id: vars
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release and attach artifacts
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            Automated build from commit ${{ steps.vars.outputs.short_sha }}
+
+            **Built:** ${{ github.event.head_commit.timestamp }}
+            **Commit:** ${{ github.sha }}
+          files: |
+            dist/kickstart-linux-x86_64
+            dist/kickstart-linux-x86_64.sha256
+          prerelease: false
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-installer:
+    needs: create-release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Prepare site directory
+        run: |
+          mkdir -p site
+          cp kickstart/bootstrap.sh site/bootstrap.sh
+
+      - name: Publish bootstrap to GitHub Pages (gh-pages)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./site
+          publish_branch: gh-pages
