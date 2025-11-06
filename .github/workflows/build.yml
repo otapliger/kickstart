@@ -1,5 +1,8 @@
 name: Build Kickstart
 
+permissions:
+  contents: write
+
 on:
   push:
     tags:
@@ -18,14 +21,13 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build kickstart with Docker (buildx)
-        working-directory: kickstart
         run: |
           docker buildx build \
             --platform linux/amd64 \
-            --output type=local,dest=dist \
+            --output type=local,dest=kickstart/dist \
             -t kickstart-builder \
-            -f Dockerfile \
-            .
+            -f kickstart/Dockerfile \
+            kickstart
 
       - name: Verify binary was produced
         run: |
@@ -37,9 +39,8 @@ jobs:
           fi
 
       - name: Create checksum for binary
-        working-directory: kickstart
         run: |
-          cd dist
+          cd kickstart/dist
           sha256sum kickstart > kickstart.sha256
           echo "Created checksum for binary:"
           ls -lh kickstart kickstart.sha256
