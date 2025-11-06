@@ -24,23 +24,23 @@ jobs:
         run: |
           docker buildx build \
             --platform linux/amd64 \
-            --output type=local,dest=kickstart/dist \
+            --output type=local,dest=dist \
             -t kickstart-builder \
-            -f kickstart/Dockerfile \
-            kickstart
+            -f Dockerfile \
+            .
 
       - name: Verify binary was produced
         run: |
-          if [ ! -f kickstart/dist/kickstart ]; then
-            echo "Expected binary not found: kickstart/dist/kickstart"
-            echo "Listing kickstart/dist for debugging:"
-            ls -la kickstart/dist || true
+          if [ ! -f dist/kickstart ]; then
+            echo "Expected binary not found: dist/kickstart"
+            echo "Listing dist for debugging:"
+            ls -la dist || true
             exit 1
           fi
 
       - name: Create checksum for binary
         run: |
-          cd kickstart/dist
+          cd dist
           sha256sum kickstart > kickstart.sha256
           echo "Created checksum for binary:"
           ls -lh kickstart kickstart.sha256
@@ -51,8 +51,8 @@ jobs:
         with:
           name: kickstart
           path: |
-            kickstart/dist/kickstart
-            kickstart/dist/kickstart.sha256
+            dist/kickstart
+            dist/kickstart.sha256
           retention-days: 1
 
   create-release:
@@ -107,7 +107,7 @@ jobs:
       - name: Prepare site directory
         run: |
           mkdir -p site
-          cp kickstart/bootstrap.sh site/bootstrap.sh
+          cp bootstrap.sh site/bootstrap.sh
 
       - name: Publish bootstrap to GitHub Pages (gh-pages)
         uses: peaceiris/actions-gh-pages@v4
