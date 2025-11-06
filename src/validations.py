@@ -33,9 +33,9 @@ def validate_username(username: str) -> bool:
     return False
 
   def _make_username_pattern() -> re.Pattern[str]:
-    start_cls = "a-z_"
-    body_cls = start_cls + "0-9_-"
-    pattern = rf"^[{start_cls}][{body_cls}]{{0,{max_len - 1}}}$"
+    start_chars = "a-z_"
+    body_chars = start_chars + "0-9-"
+    pattern = rf"^[{start_chars}][{body_chars}]{{0,{max_len - 1}}}$"
     return re.compile(pattern)
 
   pattern = _make_username_pattern()
