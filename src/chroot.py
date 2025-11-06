@@ -132,8 +132,8 @@ def generate_chroot(
     _section_post_install(ctx),
   ]
   if dry_run:
-    ui.print("[bold green][dim][DRY RUN] Generated chroot script:[/][/]")
-    ui.print(f"[bold green][dim]{'\n'.join(parts)}[/][/]")
+    ui.print("[dim][DRY RUN] Generated chroot script:[/]")
+    ui.print(f"[dim]{'\n'.join(parts)}[/]")
   else:
     with open(path, "w") as f:
       _ = f.write("\n".join(parts))

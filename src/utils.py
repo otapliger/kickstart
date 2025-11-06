@@ -46,7 +46,7 @@ def get_resource_path(relative_path: str) -> str:
 
 def cmd(command: str, dry_run: bool, ui: TUI) -> None:
   if dry_run:
-    message = f"[bold green][dim][DRY RUN] {command}[/][/]"
+    message = f"[dim][DRY RUN] {command}[/]"
     ui.print(message)
     return
 
@@ -61,7 +61,7 @@ def cmd(command: str, dry_run: bool, ui: TUI) -> None:
 def scmd(command: str, stdin_data: str, dry_run: bool, ui: TUI) -> None:
   """Execute a command with sensitive stdin data without exposing it in process list."""
   if dry_run:
-    message = f"[bold green][dim][DRY RUN] {command} (with stdin data)[/][/]"
+    message = f"[dim][DRY RUN] {command} (with stdin data)[/]"
     ui.print(message)
     return
 
@@ -86,7 +86,7 @@ def scmd(command: str, stdin_data: str, dry_run: bool, ui: TUI) -> None:
 def write(lines: list[str], path: str, dry_run: bool, ui: TUI) -> None:
   assert isinstance(lines, list)
   if dry_run:
-    message = f"[bold green][dim][DRY RUN] Writing to {path}:[/][/]"
+    message = f"[dim][DRY RUN] Writing to {path}:[/]"
     ui.print(message)
     for line in lines:
       ui.print(f"[dim]{line}[/]")
