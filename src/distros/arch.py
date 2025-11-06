@@ -60,10 +60,11 @@ def initramfs_config(crypt_uuid: str, luks_pass: str) -> str:
     {luks_pass}
     EOF
 
-    echo "ENCRYPTED UUID={crypt_uuid} /crypto.key luks,discard" >> /etc/crypttab
+    echo "ENCRYPTED UUID={crypt_uuid} /boot/crypto.key luks,discard" >> /etc/crypttab
     chmod -R g-rwx,o-rwx /boot
 
-    sed -i 's/^HOOKS=.*/HOOKS=(base udev autodetect keyboard keymap modconf block encrypt btrfs filesystems fsck)/' /etc/mkinitcpio.conf
+    sed -i 's|^FILES=.*|FILES=(/boot/crypto.key)|' /etc/mkinitcpio.conf
+    sed -i 's|^HOOKS=.*|HOOKS=(base udev autodetect keyboard keymap modconf block encrypt btrfs filesystems fsck)|' /etc/mkinitcpio.conf
     mkinitcpio -P
   """)
 

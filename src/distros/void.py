@@ -1,6 +1,5 @@
 """Void Linux specific commands and configurations"""
 
-import os
 import json
 from textwrap import dedent
 from src.utils import get_resource_path
@@ -90,7 +89,7 @@ def initramfs_config(crypt_uuid: str, luks_pass: str) -> str:
     {luks_pass}
     EOF
 
-    echo "ENCRYPTED UUID={crypt_uuid} /crypto.key luks,discard" >> /etc/crypttab
+    echo "ENCRYPTED UUID={crypt_uuid} /boot/crypto.key luks,discard" >> /etc/crypttab
     chmod -R g-rwx,o-rwx /boot
   """)
 

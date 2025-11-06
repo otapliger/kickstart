@@ -16,7 +16,7 @@ set -eu
 # If the API call fails, fall back to 'continuous'.
 if [ -z "${RELEASE_VERSION}" ]; then
   api_response="$(curl -sS -H "Accept: application/vnd.github+json" https://api.github.com/repos/otapliger/kickstart/releases/latest)" || api_response=""
-  RELEASE_VERSION="$(printf '%s' "$api_response" | grep -m1 '"tag_name"' | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true)"
+  RELEASE_VERSION="$(printf '%s' "$api_response" | grep -m1 '"tag_name"' | sed -E 's|.*"tag_name": *"([^"]+)".*|\1|' || true)"
 
   if [ -z "${RELEASE_VERSION}" ]; then
     RELEASE_VERSION="continuous"

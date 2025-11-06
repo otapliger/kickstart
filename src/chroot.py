@@ -2,7 +2,7 @@ import os
 import subprocess
 import json
 from rich.console import Console
-from src.utils import detect_gpu_vendors, get_gpu_packages, get_resource_path
+from src.utils import get_gpu_packages, get_resource_path
 from src.context import InstallerContext
 from src.distros import get_distro
 from src.tui import TUI
