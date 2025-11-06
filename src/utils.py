@@ -33,15 +33,10 @@ class GPUVendor(Enum):
 def get_resource_path(relative_path: str) -> str:
   """
   Get absolute path to resource for both normal execution and Nuitka binaries.
-  For Nuitka --onefile mode, files are extracted to a temporary directory.
   """
   if getattr(sys, "frozen", False):
-    # Running as Nuitka binary - use executable's directory or _MEIPASS
-    if hasattr(sys, "_MEIPASS"):
-      base_path = sys._MEIPASS
-    else:
-      # Fallback: use the directory containing the frozen executable
-      base_path = os.path.dirname(sys.executable)
+    # Running as Nuitka binary - use executable's directory
+    base_path = os.path.dirname(sys.executable)
   else:
     # Running as normal Python script
     base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
