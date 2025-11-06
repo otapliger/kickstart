@@ -41,8 +41,8 @@ RUN .venv/bin/python -m nuitka \
     --onefile \
     --standalone \
     --assume-yes-for-downloads \
-    --include-data-dir=profiles=profiles \
-    --include-data-files=config.json=config.json \
+    --include-data-dir=./profiles=profiles \
+    --include-data-file=./config.json=config.json \
     --output-filename=kickstart-linux-x86_64 \
     --output-dir=/app/dist \
     --include-package=src \
@@ -51,11 +51,6 @@ RUN .venv/bin/python -m nuitka \
     --jobs=4 \
     --clang \
     kickstart.py
-
-# Best-effort UPX compression (non-fatal if it fails)
-RUN if [ -f /app/dist/kickstart-linux-x86_64 ]; then \
-    upx --best --lzma /app/dist/kickstart-linux-x86_64 || upx --best /app/dist/kickstart-linux-x86_64 || echo 'UPX skipped'; \
-    fi
 
 # Prepare a tiny output directory that contains only the final binary.
 RUN mkdir -p /out && \

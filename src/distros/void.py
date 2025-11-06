@@ -3,11 +3,12 @@
 import os
 import json
 from textwrap import dedent
+from src.utils import get_resource_path
 
 
 def _load_void_defaults() -> dict[str, str]:
   """Load Void Linux defaults from config.json"""
-  config_file = os.path.join(os.path.dirname(__file__), "../../config.json")
+  config_file = get_resource_path("config.json")
   with open(config_file) as f:
     config_data = json.load(f)
     return config_data["defaults"]["void"]

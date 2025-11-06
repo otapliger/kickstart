@@ -2,7 +2,7 @@ import os
 import subprocess
 import json
 from rich.console import Console
-from src.utils import detect_gpu_vendors, get_gpu_packages
+from src.utils import detect_gpu_vendors, get_gpu_packages, get_resource_path
 from src.context import InstallerContext
 from src.distros import get_distro
 from src.tui import TUI
@@ -41,7 +41,7 @@ def _section_grub_install(crypt_uuid: str, distro_name: str) -> str:
 
 def _get_package_list(ctx: InstallerContext, warnings: list[str]) -> list[str]:
   """Get final package list based on profile configuration and GPU detection."""
-  config_file = os.path.join(os.path.dirname(__file__), "../config.json")
+  config_file = get_resource_path("config.json")
   with open(config_file) as f:
     config_data = json.load(f)
     if "packages" not in config_data or ctx.distro_id not in config_data["packages"]:

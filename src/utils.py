@@ -13,6 +13,25 @@ from src.tui import TUI
 console = Console()
 
 
+def get_resource_path(relative_path: str) -> str:
+  """
+  Get absolute path to resource for both normal execution and Nuitka binaries.
+  For Nuitka --onefile mode, files are extracted to a temporary directory.
+  """
+  if getattr(sys, "frozen", False):
+    # Running as Nuitka binary - use executable's directory or _MEIPASS
+    if hasattr(sys, "_MEIPASS"):
+      base_path = sys._MEIPASS
+    else:
+      # Fallback: use the directory containing the frozen executable
+      base_path = os.path.dirname(sys.executable)
+  else:
+    # Running as normal Python script
+    base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+  return os.path.join(base_path, relative_path)
+
+
 def cmd(command: str, dry_run: bool, ui: TUI) -> None:
   if dry_run:
     message = f"[bold green][dim][DRY RUN] {command}[/][/]"
@@ -118,7 +137,7 @@ def set_mirror(distro_id: str) -> str:
 
 def load_defaults(distro_id: str) -> DefaultsConfig:
   """Load default values from config.json file for specified distro."""
-  config_file = os.path.join(os.path.dirname(__file__), "../config.json")
+  config_file = get_resource_path("config.json")
   try:
     with open(config_file, "r") as f:
       config_data = json.load(f)
@@ -153,7 +172,7 @@ def load_defaults(distro_id: str) -> DefaultsConfig:
 
 def load_mirrors(distro_id: str) -> list[tuple[str, str, str]]:
   """Load mirrors from config.json file for specified distro and return as list of (url, region, location) tuples."""
-  config_file = os.path.join(os.path.dirname(__file__), "../config.json")
+  config_file = get_resource_path("config.json")
 
   try:
     with open(config_file, "r") as f:
@@ -233,7 +252,7 @@ def get_gpu_packages(distro_id: str, warnings: list[str] | None = None) -> list[
   """
   vendors = detect_gpu_vendors(warnings)
 
-  config_file = os.path.join(os.path.dirname(__file__), "../config.json")
+  config_file = get_resource_path("config.json")
 
   with open(config_file, "r") as f:
     config_data = json.load(f)
