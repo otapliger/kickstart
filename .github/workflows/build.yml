@@ -29,8 +29,8 @@ jobs:
 
       - name: Verify binary was produced
         run: |
-          if [ ! -f kickstart/dist/kickstart-linux-x86_64 ]; then
-            echo "Expected binary not found: kickstart/dist/kickstart-linux-x86_64"
+          if [ ! -f kickstart/dist/kickstart ]; then
+            echo "Expected binary not found: kickstart/dist/kickstart"
             echo "Listing kickstart/dist for debugging:"
             ls -la kickstart/dist || true
             exit 1
@@ -40,18 +40,18 @@ jobs:
         working-directory: kickstart
         run: |
           cd dist
-          sha256sum kickstart-linux-x86_64 > kickstart-linux-x86_64.sha256
+          sha256sum kickstart > kickstart.sha256
           echo "Created checksum for binary:"
-          ls -lh kickstart-linux-x86_64 kickstart-linux-x86_64.sha256
-          cat kickstart-linux-x86_64.sha256
+          ls -lh kickstart kickstart.sha256
+          cat kickstart.sha256
 
       - name: Upload distribution artifact
         uses: actions/upload-artifact@v4
         with:
-          name: kickstart-linux-x86_64
+          name: kickstart
           path: |
-            kickstart/dist/kickstart-linux-x86_64
-            kickstart/dist/kickstart-linux-x86_64.sha256
+            kickstart/dist/kickstart
+            kickstart/dist/kickstart.sha256
           retention-days: 1
 
   create-release:
@@ -66,7 +66,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: kickstart-linux-x86_64
+          name: kickstart
           path: dist
 
       - name: Show artifacts
@@ -88,8 +88,8 @@ jobs:
             **Built:** ${{ github.event.head_commit.timestamp }}
             **Commit:** ${{ github.sha }}
           files: |
-            dist/kickstart-linux-x86_64
-            dist/kickstart-linux-x86_64.sha256
+            dist/kickstart
+            dist/kickstart.sha256
           prerelease: false
           draft: false
         env:

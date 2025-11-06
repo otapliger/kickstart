@@ -43,7 +43,7 @@ RUN .venv/bin/python -m nuitka \
     --assume-yes-for-downloads \
     --include-data-dir=./profiles=profiles \
     --include-data-file=./config.json=config.json \
-    --output-filename=kickstart-linux-x86_64 \
+    --output-filename=kickstart \
     --output-dir=/app/dist \
     --include-package=src \
     --python-flag=-OO \
@@ -54,11 +54,11 @@ RUN .venv/bin/python -m nuitka \
 
 # Prepare a tiny output directory that contains only the final binary.
 RUN mkdir -p /out && \
-    if [ -f /app/dist/kickstart-linux-x86_64 ]; then \
-    cp /app/dist/kickstart-linux-x86_64 /out/kickstart-linux-x86_64 && \
-    chmod 0755 /out/kickstart-linux-x86_64 ; \
+    if [ -f /app/dist/kickstart ]; then \
+    cp /app/dist/kickstart /out/kickstart && \
+    chmod 0755 /out/kickstart ; \
     else \
-    echo "Expected binary missing: /app/dist/kickstart-linux-x86_64" >&2 ; \
+    echo "Expected binary missing: /app/dist/kickstart" >&2 ; \
     ls -al /app/dist || true ; \
     false ; \
     fi
@@ -67,4 +67,4 @@ RUN mkdir -p /out && \
 # Final stage: minimal image containing only the single binary
 # -----------------------------------------------------------------------------
 FROM scratch AS final
-COPY --from=builder /out/kickstart-linux-x86_64 /kickstart-linux-x86_64
+COPY --from=builder /out/kickstart /kickstart

@@ -4,10 +4,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OUTPUT_DIR="$SCRIPT_DIR/dist"
-CI_BIN="kickstart-linux-x86_64"
-LINK_NAME="kickstart"
+OUTPUT_BIN="kickstart"
 
-echo "Building -> $OUTPUT_DIR/$CI_BIN"
+echo "Building -> $OUTPUT_DIR/$OUTPUT_BIN"
 
 # Prepare output
 rm -rf "$OUTPUT_DIR"
@@ -23,14 +22,13 @@ docker buildx build --no-cache \
 
 cd "$OUTPUT_DIR"
 
-if [ ! -f "$CI_BIN" ]; then
-  echo "Error: expected binary not found: $CI_BIN" >&2
+if [ ! -f "$OUTPUT_BIN" ]; then
+  echo "Error: expected binary not found: $OUTPUT_BIN" >&2
   echo "Contents of $OUTPUT_DIR:"
   ls -alh . || true
   exit 1
 fi
 
-chmod +x "$CI_BIN" || true
-ln -sfn "$CI_BIN" "$LINK_NAME" || true
-printf "Build finished: %s -> %s (%s)\n" "$LINK_NAME" "$CI_BIN" "$(du -h "$CI_BIN" 2>/dev/null | cut -f1 || echo 'unknown')"
+chmod +x "$OUTPUT_BIN" || true
+printf "Build finished: %s (%s)\n" "$OUTPUT_BIN" "$(du -h "$OUTPUT_BIN" 2>/dev/null | cut -f1 || echo 'unknown')"
 exit 0

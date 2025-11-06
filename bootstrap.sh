@@ -24,8 +24,8 @@ if [ -z "${RELEASE_VERSION}" ]; then
 fi
 
 RELEASE_BASE_URL="https://github.com/otapliger/kickstart/releases/download/${RELEASE_VERSION}"
-RELEASE_URL="${RELEASE_BASE_URL}/kickstart-linux-x86_64"
-CHECKSUM_URL="${RELEASE_BASE_URL}/kickstart-linux-x86_64.sha256"
+RELEASE_URL="${RELEASE_BASE_URL}/kickstart"
+CHECKSUM_URL="${RELEASE_BASE_URL}/kickstart.sha256"
 CLEANUP_ON_EXIT=true
 
 cleanup() {
@@ -85,24 +85,24 @@ download_and_verify() {
   cd "${INSTALL_DIR}" || die "Cannot enter temporary directory"
 
   echo "Downloading binary..."
-  curl -fSLo kickstart-linux-x86_64 -# "${RELEASE_URL}" || die "Failed to download binary from ${RELEASE_URL}"
+  curl -fSLo kickstart -# "${RELEASE_URL}" || die "Failed to download binary from ${RELEASE_URL}"
 
   echo "Downloading checksum..."
-  if ! curl -fSLo kickstart-linux-x86_64.sha256 -# "${CHECKSUM_URL}"; then
+  if ! curl -fSLo kickstart.sha256 -# "${CHECKSUM_URL}"; then
     die "Checksum not available at ${CHECKSUM_URL} (required)."
   fi
 
   echo "Verifying checksum..."
-  sha256sum -c kickstart-linux-x86_64.sha256 >/dev/null 2>&1 || die "Checksum verification failed."
-  chmod +x kickstart-linux-x86_64 || die "Failed to make binary executable."
+  sha256sum -c kickstart.sha256 >/dev/null 2>&1 || die "Checksum verification failed."
+  chmod +x kickstart || die "Failed to make binary executable."
 }
 
 run_kickstart() {
-  [ -f kickstart-linux-x86_64 ] || die "Binary not found after download."
+  [ -f kickstart ] || die "Binary not found after download."
 
   # Keep the binary around while running it
   CLEANUP_ON_EXIT=false
-  exec ./kickstart-linux-x86_64 "$@"
+  exec ./kickstart "$@"
 }
 
 check_requirements
