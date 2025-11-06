@@ -49,6 +49,15 @@ def _check_system_requirements() -> None:
     console.print("\n[bold red]Root privileges are required. Please re-run the script as root.[/]")
     sys.exit(2)
 
+  try:
+    with open("/proc/mounts", "r") as f:
+      if any(line.split()[1].startswith("/mnt") for line in f if line.strip() and len(line.split()) > 1):
+        console.print("\n[bold red]/mnt is currently mounted or has mounted subdirectories.[/]")
+        console.print("Please unmount before running the installer.")
+        sys.exit(2)
+  except (FileNotFoundError, IOError):
+    pass
+
 
 def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser:
   """Create and configure the argument parser."""
