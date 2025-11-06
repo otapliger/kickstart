@@ -30,5 +30,5 @@ if [ ! -f "$OUTPUT_BIN" ]; then
 fi
 
 chmod +x "$OUTPUT_BIN" || true
-printf "Build finished: %s (%s)\n" "$OUTPUT_BIN" "$(du -h "$OUTPUT_BIN" 2>/dev/null | cut -f1 || echo 'unknown')"
+printf "Build finished: dist/%s\n" "$OUTPUT_BIN"
 exit 0

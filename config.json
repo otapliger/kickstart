@@ -42,6 +42,7 @@
     "void": [
       "bat",
       "cmake",
+      "curl",
       "ffmpeg",
       "fish-shell",
       "git",

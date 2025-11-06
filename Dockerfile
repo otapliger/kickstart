@@ -15,13 +15,12 @@ RUN apt-get update && apt-get install -y \
     ccache \
     patchelf \
     binutils \
-    upx-ucl \
     curl \
     file \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv (astral) and move binaries into PATH
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh && \
+RUN curl -fsSL https://astral.sh/uv/install.sh | sh && \
     mv /root/.local/bin/uv /usr/local/bin/uv && \
     mv /root/.local/bin/uvx /usr/local/bin/uvx
 
