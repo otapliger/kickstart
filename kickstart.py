@@ -3,17 +3,19 @@
 import argparse
 import os
 import sys
+from argparse import Namespace
+from textwrap import dedent
 from typing import override
+
 from rich.console import Console
+
+from src.ascii import print_logo
+from src.context import ContextConfig, InstallerContext
+from src.profiles import ProfileLoader
 from src.steps import get_install_steps
 from src.tui import TUI
-from src.utils import load_defaults, get_distro_info, format_step_name, DefaultsConfig
-from src.context import InstallerContext, ContextConfig
-from src.profiles import ProfileLoader
+from src.utils import DefaultsConfig, format_step_name, get_distro_info, load_defaults
 from src.validations import validate_cli_arguments
-from src.ascii import print_logo
-from textwrap import dedent
-from argparse import Namespace
 
 console = Console()
 
@@ -187,7 +189,7 @@ def _run_installation(ctx: InstallerContext, ui: TUI, warnings: list[str]) -> No
       filled = "▓" * i
       empty = "░" * (total_steps - i)
       progress_bar = f"[{filled}{empty}]"
-      ui.update_status(f"{progress_bar} {step_name} · Step {i}/{total_steps}")
+      ui.update_status(f"{progress_bar} {step_name} · Step {i}/{total_steps}", step_name)
 
     try:
       step(ctx, warnings)
@@ -283,7 +285,7 @@ def main() -> None:
       setattr(ctx.config, field, getattr(ctx.profile.config, field))
     # fmt: on
 
-  ctx.ui = TUI(dry_mode=config.dry)
+  ctx.ui = TUI(dry_mode=config.dry, distro_id=distro_id)
 
   try:
     # Print logo and dry run banner

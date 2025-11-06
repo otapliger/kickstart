@@ -1,15 +1,17 @@
-import subprocess
-import os
-import sys
-import re
 import json
+import os
+import re
+import subprocess
+import sys
+from enum import Enum
 from operator import itemgetter
 from typing import TypedDict
-from enum import Enum
+
 from rich.console import Console
-from src.validations import validate_defaults_json, validate_mirrors_json
-from src.input import HostnamePrompt, IntegerPrompt, UsernamePrompt, PasswordPrompt
+
+from src.input import HostnamePrompt, IntegerPrompt, PasswordPrompt, UsernamePrompt
 from src.tui import TUI
+from src.validations import validate_defaults_json, validate_mirrors_json
 
 console = Console()
 
@@ -59,7 +61,7 @@ def cmd(command: str, dry_run: bool, ui: TUI) -> None:
 
     if process.stdout:
       for line in process.stdout:
-        ui.print(line.rstrip())
+        ui.print(f"[dim]{line.rstrip()}[/]")
 
     process.wait()
 
@@ -89,7 +91,7 @@ def scmd(command: str, stdin_data: str, dry_run: bool, ui: TUI) -> None:
 
     if stdout:
       for line in stdout.splitlines():
-        ui.print(line)
+        ui.print(f"[dim]{line}[/]")
 
     if process.returncode != 0:
       raise subprocess.CalledProcessError(process.returncode, command, output=stdout)

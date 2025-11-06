@@ -1,17 +1,32 @@
+import shutil
 import sys
 import time
-import shutil
+
+from rich import box
 from rich.console import Console
+from rich.layout import Layout
+from rich.live import Live
 from rich.panel import Panel
 from rich.text import Text
-from rich.live import Live
-from rich.layout import Layout
 
 console = Console()
 
+STEP_PREFIXES = {
+  "Settings": "* ",
+  "Disk Setup": "# ",
+  "System Bootstrap": "^ ",
+  "System Installation And Configuration": "@ ",
+  "Cleanup": "~ ",
+}
+
+DISTRO_COLORS = {
+  "arch": {"text": "bold blue", "border": "blue"},
+  "void": {"text": "bold green", "border": "green"},
+}
+
 
 class TUI:
-  def __init__(self, dry_mode: bool = False):
+  def __init__(self, dry_mode: bool = False, distro_id: str = "arch"):
     self.enabled: bool = sys.stdout.isatty()
     self.status_text: str = ""
     self.initialized: bool = False
@@ -19,21 +34,36 @@ class TUI:
     self.layout: Layout | None = None
     self.output_lines: list[str] = []
     self.dry_mode: bool = dry_mode
+    self.distro_id: str = distro_id
+    self.colors = DISTRO_COLORS.get(distro_id, {"text": "bold yellow", "border": "yellow"})
 
   def initialize(self) -> None:
     if not self.enabled or self.initialized:
       return
     self.initialized = True
 
-  def update_status(self, message: str) -> None:
+  def _create_status_panel(self, text: str) -> Panel:
+    status = Text(text, style=self.colors["text"])
+    return Panel(
+      status,
+      border_style=self.colors["border"],
+      padding=(0, 1),
+      expand=False,
+      box=box.SQUARE,
+      title="kickstart",
+      title_align="left",
+    )
+
+  def update_status(self, message: str, step_name: str = "") -> None:
     if not self.enabled:
-      console.print(f"[bold green]{message}[/]")
+      console.print(f"[{self.colors['text']}]{message}[/]")
       return
 
     if not self.initialized:
       return
 
-    self.status_text = message
+    prefix = STEP_PREFIXES.get(step_name)
+    self.status_text = f"{prefix}{message}"
 
     if self.live is None:
       # Initialize Live display on first call (step 1)
@@ -43,8 +73,7 @@ class TUI:
         Layout(name="output", ratio=1),
       )
 
-      status = Text(self.status_text, style="bold green")
-      panel = Panel(status, border_style="green", padding=(0, 1))
+      panel = self._create_status_panel(self.status_text)
       layout["status"].update(panel)
       layout["output"].update("")
 
@@ -54,8 +83,7 @@ class TUI:
 
     else:
       if self.layout:
-        status = Text(self.status_text, style="bold green")
-        panel = Panel(status, border_style="green", padding=(0, 1))
+        panel = self._create_status_panel(self.status_text)
         self.layout["status"].update(panel)
 
   def print(self, message: str) -> None:
