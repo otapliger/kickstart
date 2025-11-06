@@ -32,8 +32,8 @@ def get_distro(distro_id: str, dry_mode: bool = False) -> DistroProtocol:
       return cast(DistroProtocol, module_as_object)
 
     else:
-      console.print(f"\n[bold red]Unsupported distribution: {distro_id}[/]")
-      console.print(f"\n[bold red]No module found at src/distros/{distro_id}.py[/]")
+      console.print(f"\n[prompt.invalid]Unsupported distribution: {distro_id}[/]")
+      console.print(f"\n[prompt.invalid]No module found at src/distros/{distro_id}.py[/]")
       sys.exit(1)
 
 

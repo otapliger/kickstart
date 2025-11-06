@@ -176,7 +176,7 @@ class ProfileLoader:
 
       validation_issues = validate_profile_json(data)
       if validation_issues:
-        console.print(f"\n[bold red]Profile validation failed for '{source}':[/]")
+        console.print(f"\n[prompt.invalid]Profile validation failed for '{source}':[/]")
         for issue in validation_issues:
           console.print(f" • {issue}")
 
@@ -186,5 +186,5 @@ class ProfileLoader:
       return profile
 
     except Exception as e:
-      console.print(f"\n[bold red]Failed to load profile from '{source}': {e}[/]")
+      console.print(f"\n[prompt.invalid]Failed to load profile from '{source}': {e}[/]")
       raise

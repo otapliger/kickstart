@@ -46,13 +46,13 @@ class IndentedHelpFormatter(argparse.RawDescriptionHelpFormatter):
 def _check_system_requirements() -> None:
   """Check if the system meets installation requirements."""
   if os.geteuid() != 0:
-    console.print("\n[bold red]Root privileges are required. Please re-run the script as root.[/]")
+    console.print("\n[prompt.invalid]Root privileges are required. Please re-run the script as root.[/]")
     sys.exit(2)
 
   try:
     with open("/proc/mounts", "r") as f:
       if any(line.split()[1].startswith("/mnt") for line in f if line.strip() and len(line.split()) > 1):
-        console.print("\n[bold red]/mnt is currently mounted or has mounted subdirectories.[/]")
+        console.print("\n[prompt.invalid]/mnt is currently mounted or has mounted subdirectories.[/]")
         console.print("Please unmount before running the installer.")
         sys.exit(2)
   except (FileNotFoundError, IOError):
@@ -195,15 +195,15 @@ def _run_installation(ctx: InstallerContext, ui: TUI, warnings: list[str]) -> No
 
     except KeyboardInterrupt:
       ui.cleanup()
-      console.print("\n\n[bold red]Installation interrupted by user. Exiting...[/]")
+      console.print("\n\n[prompt.invalid]Installation interrupted by user. Exiting...[/]")
       sys.exit(130)
 
     except Exception as e:
       ui.cleanup()
-      console.print(f"\n[bold red]Step '{step_name}' failed with error: {e}[/]")
-      console.print("\n[bold red]Installation cannot continue.[/]")
+      console.print(f"\n[prompt.invalid]Step '{step_name}' failed with error: {e}[/]")
+      console.print("\n[prompt.invalid]Installation cannot continue.[/]")
       if ctx.dry:
-        console.print("\n[bold red]This error occurred during dry run - actual installation might fail.[/]")
+        console.print("\n[prompt.invalid]This error occurred during dry run - actual installation might fail.[/]")
       sys.exit(1)
 
   # Clear status line when installation completes
@@ -230,7 +230,7 @@ def main() -> None:
       distro_name = profile.distro.capitalize()
       defaults = load_defaults(distro_id)
     except Exception as e:
-      console.print(f"\n[bold red]Failed to load profile: {e}[/]")
+      console.print(f"\n[prompt.invalid]Failed to load profile: {e}[/]")
       sys.exit(1)
 
   errors = validate_cli_arguments(
@@ -243,7 +243,7 @@ def main() -> None:
   )
 
   if errors:
-    console.print("\n[bold red]Invalid arguments provided:[/]")
+    console.print("\n[prompt.invalid]Invalid arguments provided:[/]")
     console.print("\n".join(f" • {err}" for err in errors))
     console.print("\n[yellow]Use --help for valid options[/]")
     sys.exit(1)
@@ -264,11 +264,11 @@ def main() -> None:
 
         if ctx.profile.distro != ctx.distro_id:
           msg = f"Profile distro mismatch - profile requires '{ctx.profile.distro}' but system is '{ctx.distro_id}'"
-          console.print(f"\n[bold red]{msg}[/]")
+          console.print(f"\n[prompt.invalid]{msg}[/]")
           sys.exit(1)
 
       except Exception as e:
-        console.print(f"\n[bold red]Failed to load profile: {e}[/]")
+        console.print(f"\n[prompt.invalid]Failed to load profile: {e}[/]")
         sys.exit(1)
 
     # Apply profile configuration overrides to base config
@@ -317,7 +317,7 @@ def main() -> None:
       console.print()
 
   except Exception as e:
-    console.print(f"\n[bold red]Unexpected error during installation: {e}[/]")
+    console.print(f"\n[prompt.invalid]Unexpected error during installation: {e}[/]")
     sys.exit(1)
 
 
@@ -326,9 +326,9 @@ if __name__ == "__main__":
     main()
 
   except KeyboardInterrupt:
-    console.print("\n[bold red]Installation interrupted. Exiting...[/]")
+    console.print("\n[prompt.invalid]Installation interrupted. Exiting...[/]")
     sys.exit(130)
 
   except Exception as e:
-    console.print(f"\n[bold red]Fatal error: {e}[/]")
+    console.print(f"\n[prompt.invalid]Fatal error: {e}[/]")
     sys.exit(1)

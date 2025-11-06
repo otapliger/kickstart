@@ -69,7 +69,7 @@ def step_0_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
   console.print(f"\n[bold yellow]WARNING:[/] All data on {ctx.disk} will be erased.", style="bold")
   response = Confirm.ask("Are you sure you want to continue?", default=False)
   if not response:
-    console.print("\n[bold red]Installation aborted. No changes were made to the system.[/]")
+    console.print("\n[prompt.invalid]Installation aborted. No changes were made to the system.[/]")
     sys.exit(0)
 
   console.print()

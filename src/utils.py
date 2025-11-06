@@ -42,7 +42,7 @@ def cmd(command: str, dry_run: bool, ui: TUI) -> None:
     _ = subprocess.run(command, check=True, shell=True)
 
   except subprocess.CalledProcessError as e:
-    console.print(f"\n[bold red]Command '{command}' failed with error: {e}[/]")
+    console.print(f"\n[prompt.invalid]Command '{command}' failed with error: {e}[/]")
     sys.exit(1)
 
 
@@ -63,10 +63,10 @@ def scmd(command: str, stdin_data: str, dry_run: bool, ui: TUI) -> None:
       raise subprocess.CalledProcessError(process.returncode, command, output=stdout, stderr=stderr)
 
   except subprocess.CalledProcessError as e:
-    console.print(f"\n[bold red]Command '{command}' failed with error: {e}[/]")
+    console.print(f"\n[prompt.invalid]Command '{command}' failed with error: {e}[/]")
 
     if e.stderr:
-      console.print(f"\n[bold red]stderr: {e.stderr}[/]")
+      console.print(f"\n[prompt.invalid]stderr: {e.stderr}[/]")
 
     sys.exit(1)
 
@@ -120,7 +120,7 @@ def set_mirror(distro_id: str) -> str:
   default_repository = load_defaults(distro_id)["repository"]
   mirrors = load_mirrors(distro_id)
   if not mirrors:
-    console.print("\n[bold red]No mirrors available. Using default.[/]")
+    console.print("\n[prompt.invalid]No mirrors available. Using default.[/]")
     return str(default_repository)
 
   console.print()
@@ -162,11 +162,11 @@ def load_defaults(distro_id: str) -> DefaultsConfig:
       )
 
   except (FileNotFoundError, json.JSONDecodeError) as e:
-    console.print(f"\n[bold red]Error loading config.json: {e}[/]")
+    console.print(f"\n[prompt.invalid]Error loading config.json: {e}[/]")
     sys.exit(1)
 
   except (KeyError, ValueError) as e:
-    console.print(f"\n[bold red]Invalid config.json format: {e}[/]")
+    console.print(f"\n[prompt.invalid]Invalid config.json format: {e}[/]")
     sys.exit(1)
 
 
@@ -186,11 +186,11 @@ def load_mirrors(distro_id: str) -> list[tuple[str, str, str]]:
       mirrors = list(map(extract_mirror, data))
 
   except (FileNotFoundError, json.JSONDecodeError) as e:
-    console.print(f"\n[bold red]Error loading config.json: {e}[/]")
+    console.print(f"\n[prompt.invalid]Error loading config.json: {e}[/]")
     sys.exit(1)
 
   except ValueError as e:
-    console.print(f"\n[bold red]Invalid config.json format: {e}[/]")
+    console.print(f"\n[prompt.invalid]Invalid config.json format: {e}[/]")
     sys.exit(1)
 
   return mirrors
