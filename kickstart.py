@@ -7,9 +7,8 @@ from typing import override
 from rich.console import Console
 from src.steps import get_install_steps
 from src.tui import TUI
-from src.utils import load_defaults, get_distro_info, format_step_name
-from src.types import DefaultsConfig, ContextConfig
-from src.context import InstallerContext
+from src.utils import load_defaults, get_distro_info, format_step_name, DefaultsConfig
+from src.context import InstallerContext, ContextConfig
 from src.profiles import ProfileLoader
 from src.validations import validate_cli_arguments
 from src.ascii import print_logo

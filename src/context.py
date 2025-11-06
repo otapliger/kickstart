@@ -1,7 +1,19 @@
 from __future__ import annotations
+from dataclasses import dataclass
 from src.profiles import InstallationProfile
-from src.types import ContextConfig
 from src.tui import TUI
+
+
+@dataclass
+class ContextConfig:
+  dry: bool
+  libc: str
+  repository: str | None
+  timezone: str
+  keymap: str
+  locale: str
+  hostname: str | None = None
+  profile: str | None = None
 
 
 class InstallerContext:

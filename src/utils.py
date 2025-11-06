@@ -4,13 +4,30 @@ import sys
 import re
 import json
 from operator import itemgetter
+from typing import TypedDict
+from enum import Enum
 from rich.console import Console
 from src.validations import validate_defaults_json, validate_mirrors_json
 from src.input import HostnamePrompt, IntegerPrompt, UsernamePrompt, PasswordPrompt
-from src.types import DefaultsConfig, GPUVendor
 from src.tui import TUI
 
 console = Console()
+
+
+class DefaultsConfig(TypedDict):
+  repository: str
+  timezone: str
+  locale: str
+  keymap: str
+  libc: str
+  ntp: list[str]
+
+
+class GPUVendor(Enum):
+  INTEL = "intel"
+  AMD = "amd"
+  NVIDIA = "nvidia"
+  UNKNOWN = "unknown"
 
 
 def get_resource_path(relative_path: str) -> str:

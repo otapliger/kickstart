@@ -8,8 +8,13 @@ for validating URLs, timezones, locales, hostnames, profiles, and JSON data.
 import re
 import urllib.parse
 from pathlib import Path
-from typing import Any
-from src.types import MirrorData
+from typing import Any, TypedDict
+
+
+class MirrorData(TypedDict):
+  url: str
+  region: str
+  location: str
 
 
 # =============================================================================
