@@ -44,11 +44,33 @@ die() {
 check_requirements() {
   echo "Checking requirements..."
 
-  [ "$(uname -m)" = "x86_64" ] || die "Only x86_64 architecture is supported."
+  if [ -f /etc/os-release ]; then
+    . /etc/os-release
+    DISTRO="${ID:-unknown}"
+  else
+    DISTRO="unknown"
+  fi
 
-  command -v curl >/dev/null 2>&1 || die "curl not found."
-  command -v sha256sum >/dev/null 2>&1 || die "sha256sum not found."
-  command -v mktemp >/dev/null 2>&1 || die "mktemp not found."
+  case "${DISTRO}" in
+    void|arch)
+      ;;
+    *)
+      die "Unsupported distribution: ${DISTRO}. Check https://github.com/otapliger/kickstart for supported distributions."
+      ;;
+  esac
+
+  if ! command -v curl >/dev/null 2>&1 || ! command -v parted >/dev/null 2>&1 || ! command -v sgdisk >/dev/null 2>&1; then
+    case "${DISTRO}" in
+      void)
+        echo "Installing required packages (Void Linux)..."
+        xbps-install -Sy xbps curl parted gptfdisk || die "Failed to install required packages"
+        ;;
+      arch)
+        echo "Installing required packages (Arch Linux)..."
+        pacman -Sy --noconfirm curl parted gptfdisk || die "Failed to install required packages"
+        ;;
+    esac
+  fi
 }
 
 download_and_verify() {
