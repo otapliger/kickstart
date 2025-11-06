@@ -50,8 +50,21 @@ def cmd(command: str, dry_run: bool, ui: TUI) -> None:
     ui.print(message)
     return
 
+  ui.print(f"[dim]$ {command}[/]")
+
   try:
-    _ = subprocess.run(command, check=True, shell=True)
+    process = subprocess.Popen(
+      command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1
+    )
+
+    if process.stdout:
+      for line in process.stdout:
+        ui.print(line.rstrip())
+
+    process.wait()
+
+    if process.returncode != 0:
+      raise subprocess.CalledProcessError(process.returncode, command)
 
   except subprocess.CalledProcessError as e:
     console.print(f"\n[prompt.invalid]Command '{command}' failed with error: {e}[/]")
@@ -65,20 +78,27 @@ def scmd(command: str, stdin_data: str, dry_run: bool, ui: TUI) -> None:
     ui.print(message)
     return
 
+  ui.print(f"[dim]$ {command} (with stdin data)[/]")
+
   try:
     process = subprocess.Popen(
-      command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+      command, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1
     )
 
-    stdout, stderr = process.communicate(input=stdin_data)
+    stdout, _ = process.communicate(input=stdin_data)
+
+    if stdout:
+      for line in stdout.splitlines():
+        ui.print(line)
+
     if process.returncode != 0:
-      raise subprocess.CalledProcessError(process.returncode, command, output=stdout, stderr=stderr)
+      raise subprocess.CalledProcessError(process.returncode, command, output=stdout)
 
   except subprocess.CalledProcessError as e:
     console.print(f"\n[prompt.invalid]Command '{command}' failed with error: {e}[/]")
 
-    if e.stderr:
-      console.print(f"\n[prompt.invalid]stderr: {e.stderr}[/]")
+    if e.output:
+      console.print(f"\n[prompt.invalid]Output: {e.output}[/]")
 
     sys.exit(1)
 
