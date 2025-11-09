@@ -2,14 +2,6 @@
 
 set -eu
 
-# Installer for Kickstart (minimal)
-# Usage:
-#   - Install the continuous build (default):
-#       ./install.sh
-#
-#   - Install a specific tagged release:
-#       RELEASE_VERSION="v1.2.3" ./install.sh
-
 : "${RELEASE_VERSION:=}"
 
 # If RELEASE_VERSION was not provided, query the GitHub Releases API for the latest tag.
