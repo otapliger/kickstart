@@ -1,17 +1,6 @@
 """Void Linux specific commands and configurations"""
 
-import json
 from textwrap import dedent
-
-from src.utils import get_resource_path
-
-
-def _load_void_defaults() -> dict[str, str]:
-  """Load Void Linux defaults from config.json"""
-  config_file = get_resource_path("config.json")
-  with open(config_file) as f:
-    config_data = json.load(f)
-    return config_data["defaults"]["void"]
 
 
 def prepare_base_system() -> list[str]:
@@ -21,17 +10,15 @@ def prepare_base_system() -> list[str]:
   ]
 
 
-def install_base_system(packages: list[str], repository: str | None = None) -> str:
+def install_base_system(packages: list[str]) -> str:
   pkgs = " ".join(packages)
-  repo = repository or _load_void_defaults()["repository"]
-  return f"xbps-install -Sy -R '{repo}' -r /mnt {pkgs}"
+  return f"xbps-install -Sy -r /mnt {pkgs}"
 
 
-def install_packages(packages: list[str], repository: str | None = None) -> str:
+def install_packages(packages: list[str]) -> str:
   pkgs = " ".join(packages)
-  repo = repository or _load_void_defaults()["repository"]
   return dedent(f"""\
-    yes | xbps-install -USy --repository "{repo}" {pkgs}
+    yes | xbps-install -USy {pkgs}
   """)
 
 
@@ -53,15 +40,15 @@ def locale_settings(locale: str, libc: str | None = None) -> list[tuple[str, lis
     ("/etc/locale.conf", [f"{var}={locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]]),
   ]
 
-  if (libc or _load_void_defaults()["libc"]) == "glibc":
+  if libc == "glibc":
     files.append(("/etc/default/libc-locales", [locale]))
 
   return files
 
 
 def setup_commands(props: dict[str, str]) -> list[str]:
-  timezone = props.get("timezone") or _load_void_defaults()["timezone"]
-  keymap = props.get("keymap") or _load_void_defaults()["keymap"]
+  timezone = props.get("timezone", "UTC")
+  keymap = props.get("keymap", "us")
   return [
     f"echo 'TIMEZONE=\"{timezone}\"' > /etc/rc.conf",
     "echo 'HARDWARECLOCK=\"UTC\"' >> /etc/rc.conf",

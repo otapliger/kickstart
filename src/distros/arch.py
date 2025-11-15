@@ -7,18 +7,12 @@ def prepare_base_system() -> list[str]:
   return []
 
 
-# Arch uses mirrors from /etc/pacman.d/mirrorlist
-# pacstrap doesn't support setting the repository URL directly
-# so repository parameter is ignored
-def install_base_system(packages: list[str], _repository: str | None = None) -> str:
+def install_base_system(packages: list[str]) -> str:
   pkgs = " ".join(packages)
   return f"pacstrap /mnt {pkgs}"
 
 
-# Arch uses mirrors from /etc/pacman.d/mirrorlist
-# pacstrap doesn't support setting the repository URL directly
-# so repository parameter is ignored
-def install_packages(packages: list[str], _repository: str | None = None) -> str:
+def install_packages(packages: list[str]) -> str:
   pkgs = " ".join(packages)
   return f"pacman -Syu --noconfirm {pkgs}"
 

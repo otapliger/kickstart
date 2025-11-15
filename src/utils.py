@@ -4,20 +4,18 @@ import re
 import subprocess
 import sys
 from enum import Enum
-from operator import itemgetter
 from typing import TypedDict
 
 from rich.console import Console
 
 from src.input import HostnamePrompt, IntegerPrompt, PasswordPrompt, UsernamePrompt
 from src.tui import TUI
-from src.validations import validate_defaults_json, validate_mirrors_json
+from src.validations import validate_defaults_json
 
 console = Console()
 
 
 class DefaultsConfig(TypedDict):
-  repository: str | None
   timezone: str
   locale: str
   keymap: str
@@ -150,29 +148,6 @@ def set_user() -> tuple[str, str]:
     return user_name, user_pass
 
 
-def set_mirror(distro_id: str) -> str | None:
-  default_repository = load_defaults(distro_id)["repository"]
-
-  if default_repository is None:
-    return None
-
-  mirrors = load_mirrors(distro_id)
-  if not mirrors:
-    console.print("\n[prompt.invalid]No mirrors available. Using default.[/]")
-    return str(default_repository)
-
-  console.print()
-  console.print("Available mirrors:")
-  for i, (_url, region, location) in enumerate(mirrors, start=1):
-    console.print(f" {i}. {location} ({region})")
-
-  console.print()
-  choices = [str(i) for i in range(1, len(mirrors) + 1)]
-  mirror_choice = IntegerPrompt.ask("Choose a mirror (enter number)", choices=choices, default=1)
-  selected_url = mirrors[mirror_choice - 1][0]
-  return selected_url
-
-
 def load_defaults(distro_id: str) -> DefaultsConfig:
   """Load default values from config.json file for specified distro."""
   config_file = get_resource_path("config.json")
@@ -181,7 +156,6 @@ def load_defaults(distro_id: str) -> DefaultsConfig:
       config_data = json.load(f)
       if "defaults" not in config_data or distro_id not in config_data["defaults"]:
         return DefaultsConfig(
-          repository=None,
           timezone="Europe/London",
           locale="en_GB.UTF-8",
           keymap="uk",
@@ -193,7 +167,6 @@ def load_defaults(distro_id: str) -> DefaultsConfig:
       data = validate_defaults_json(defaults_data)
 
       return DefaultsConfig(
-        repository=str(data["repository"]) if data.get("repository") is not None else None,
         timezone=str(data["timezone"]),
         locale=str(data["locale"]),
         keymap=str(data["keymap"]),
@@ -208,32 +181,6 @@ def load_defaults(distro_id: str) -> DefaultsConfig:
   except (KeyError, ValueError) as e:
     console.print(f"\n[prompt.invalid]Invalid config.json format: {e}[/]")
     sys.exit(1)
-
-
-def load_mirrors(distro_id: str) -> list[tuple[str, str, str]]:
-  """Load mirrors from config.json file for specified distro and return as list of (url, region, location) tuples."""
-  config_file = get_resource_path("config.json")
-
-  try:
-    with open(config_file, "r") as f:
-      config_data = json.load(f)
-      if "mirrors" not in config_data or distro_id not in config_data["mirrors"]:
-        return [("https://example.com/repo", "Global", "Generic Mirror")]
-
-      mirrors_data = config_data["mirrors"][distro_id]
-      data = validate_mirrors_json(mirrors_data)
-      extract_mirror = itemgetter("url", "region", "location")
-      mirrors = list(map(extract_mirror, data))
-
-  except (FileNotFoundError, json.JSONDecodeError) as e:
-    console.print(f"\n[prompt.invalid]Error loading config.json: {e}[/]")
-    sys.exit(1)
-
-  except ValueError as e:
-    console.print(f"\n[prompt.invalid]Invalid config.json format: {e}[/]")
-    sys.exit(1)
-
-  return mirrors
 
 
 def get_distro_info(file_path: str = "/etc/os-release") -> tuple[str, str]:

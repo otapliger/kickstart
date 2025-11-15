@@ -31,7 +31,6 @@ class ProfileConfig:
   timezone: str | None = None
   keymap: str | None = None
   locale: str | None = None
-  repository: str | None = None
 
 
 @dataclass
@@ -68,7 +67,6 @@ class InstallationProfile:
         timezone=str(config_data.get("timezone")) if isinstance(config_data.get("timezone"), str) else None,
         keymap=str(config_data.get("keymap")) if isinstance(config_data.get("keymap"), str) else None,
         locale=str(config_data.get("locale")) if isinstance(config_data.get("locale"), str) else None,
-        repository=str(config_data.get("repository")) if isinstance(config_data.get("repository"), str) else None,
       )
       if isinstance(config_data, dict)
       else ProfileConfig()

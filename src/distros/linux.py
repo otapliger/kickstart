@@ -5,11 +5,11 @@ def prepare_base_system() -> list[str]:
   return []
 
 
-def install_base_system(_packages: list[str], _repository: str | None = None) -> str:
+def install_base_system(_packages: list[str]) -> str:
   return ""
 
 
-def install_packages(_packages: list[str], _repository: str | None = None) -> str:
+def install_packages(_packages: list[str]) -> str:
   return ""
 
 

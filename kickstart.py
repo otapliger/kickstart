@@ -110,18 +110,6 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
     dest="libc",
   )
 
-  # Only add repository flag if distro supports it
-  if defaults["repository"] is not None:
-    _ = parser.add_argument(
-      "-r",
-      "--repository",
-      metavar="URL",
-      type=str,
-      default=None,
-      help=f"override interactive mirror selection with specific repository URL [default: {defaults['repository']}]",
-      dest="repository",
-    )
-
   _ = parser.add_argument(
     "-t",
     "--timezone",
@@ -169,7 +157,6 @@ def _create_context_config(args: Namespace) -> ContextConfig:
   return ContextConfig(
     dry=bool(getattr(args, "dry", False)),
     libc=str(getattr(args, "libc", "glibc")),
-    repository=getattr(args, "repository", None),
     timezone=str(getattr(args, "timezone", "UTC")),
     keymap=str(getattr(args, "keymap", "us")),
     locale=str(getattr(args, "locale", "C")),
@@ -237,7 +224,6 @@ def main() -> None:
       sys.exit(1)
 
   errors = validate_cli_arguments(
-    repository=config.repository,
     timezone=config.timezone,
     locale=config.locale,
     libc=config.libc,
@@ -277,7 +263,7 @@ def main() -> None:
 
     # Apply profile configuration overrides to base config
     # (only if not explicitly set via CLI)
-    config_fields = ["libc", "timezone", "keymap", "locale", "repository"]
+    config_fields = ["libc", "timezone", "keymap", "locale"]
 
     # fmt: off
     for field in (

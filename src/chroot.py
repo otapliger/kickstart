@@ -64,7 +64,7 @@ def _section_install_packages(ctx: InstallerContext, warnings: list[str]) -> str
     return ""
 
   distro = get_distro(ctx.distro_id, ctx.dry)
-  return distro.install_packages(pkgs_list, ctx.repository)
+  return distro.install_packages(pkgs_list)
 
 
 def _section_post_install(ctx: InstallerContext) -> str:

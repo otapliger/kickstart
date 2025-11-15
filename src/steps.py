@@ -14,7 +14,6 @@ from src.utils import (
   scmd,
   set_disk,
   set_host,
-  set_mirror,
   set_user,
   write,
 )
@@ -53,25 +52,6 @@ def step_0_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
 
   ctx.disk, ctx.luks_pass = set_disk()
   ctx.user_name, ctx.user_pass = set_user()
-
-  # Select repository: profile > CLI > interactive
-  # Repository is only used for distros that support it (e.g., Void Linux)
-  profile_repo = ctx.profile.config.repository if ctx.profile else None
-
-  if profile_repo:
-    ctx.repository = profile_repo
-    console.print(f"\nUsing repository from profile: {ctx.repository}")
-
-  elif ctx.config.repository is not None:
-    ctx.repository = ctx.config.repository
-    console.print(f"\nUsing repository from command line: {ctx.repository}")
-
-  else:
-    defaults = load_defaults(ctx.distro_id)
-    if defaults["repository"] is not None:
-      ctx.repository = set_mirror(ctx.distro_id)
-    else:
-      ctx.repository = None
 
   console.print(f"\n[bold yellow]WARNING:[/] All data on {ctx.disk} will be erased.", style="bold")
   response = Confirm.ask("Are you sure you want to continue?", default=False)
@@ -139,7 +119,7 @@ def step_2_system_bootstrap(ctx: InstallerContext, _warnings: list[str]) -> None
     cmd(prep_cmd, ctx.dry, ctx.ui)
 
   base_pkgs = ["base", "linux"] if ctx.dry else distro.base_packages()
-  cmd(distro.install_base_system(base_pkgs, ctx.repository), ctx.dry, ctx.ui)
+  cmd(distro.install_base_system(base_pkgs), ctx.dry, ctx.ui)
 
 
 def step_3_system_installation_and_configuration(ctx: InstallerContext, warnings: list[str]) -> None:

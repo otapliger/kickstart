@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from dataclasses import dataclass
+
 from src.profiles import InstallationProfile
 from src.tui import TUI
 
@@ -8,7 +10,6 @@ from src.tui import TUI
 class ContextConfig:
   dry: bool
   libc: str
-  repository: str | None
   timezone: str
   keymap: str
   locale: str
@@ -39,7 +40,6 @@ class InstallerContext:
     self.luks_pass: str | None = None
     self.user_name: str | None = None
     self.user_pass: str | None = None
-    self.repository: str | None = None
 
     # System-generated paths
     self.cryptroot: str | None = None

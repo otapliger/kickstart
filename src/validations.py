@@ -8,14 +8,7 @@ for validating URLs, timezones, locales, hostnames, profiles, and JSON data.
 import re
 import urllib.parse
 from pathlib import Path
-from typing import Any, TypedDict
-
-
-class MirrorData(TypedDict):
-  url: str
-  region: str
-  location: str
-
+from typing import Any
 
 # =============================================================================
 # Validation Functions
@@ -187,23 +180,7 @@ def validate_defaults_json(data: Any) -> dict[str, Any]:
   return data
 
 
-def validate_mirrors_json(data: Any) -> list[MirrorData]:
-  """Validate and return mirrors JSON data with proper typing."""
-  if not isinstance(data, list):
-    raise ValueError("Mirrors JSON must be an array")
-
-  for item in data:
-    if not isinstance(item, dict):
-      raise ValueError("Each mirror must be an object")
-
-    if not all(key in item for key in ["url", "region", "location"]):
-      raise ValueError("Each mirror must have url, region, and location fields")
-
-  return data
-
-
 def validate_cli_arguments(
-  repository: str | None,
   timezone: str,
   locale: str,
   libc: str,
@@ -222,9 +199,6 @@ def validate_cli_arguments(
     (validate_locale(locale), f"Invalid locale: {locale} (expected format: language[_COUNTRY][.encoding][@modifier])"),
     (validate_libc(libc), f"Invalid libc: {libc} (must be 'glibc' or 'musl')"),
   ]
-
-  if repository:
-    validators.append((validate_url(repository), f"Invalid repository URL: {repository}"))
 
   if hostname:
     validators.append((validate_hostname(hostname), f"Invalid hostname: {hostname} (must follow RFC 1123 format)"))
