@@ -36,11 +36,14 @@ Automated installer for Linux distributions with encrypted BTRFS and sensible de
 Profiles are JSON files that define installation configurations:
 
 ```bash
+# Embedded profile
+curl -fsSL https://plgr.tv/kickstart | sh -- -p minimal
+
 # Local profile
-curl -fsSL https://otapliger.github.io/kickstart/bootstrap.sh | sh -- -p profiles/void/minimal.json
+curl -fsSL https://plgr.tv/kickstart | sh -- -p example/path/minimal.json
 
 # Remote profile
-curl -fsSL https://otapliger.github.io/kickstart/bootstrap.sh | sh -- -p https://example.com/profile.json
+curl -fsSL https://plgr.tv/kickstart | sh -- -p https://example.com/profile.json
 ```
 
 Example profile structure:
