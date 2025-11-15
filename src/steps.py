@@ -201,6 +201,10 @@ def step_3_system_installation_and_configuration(ctx: InstallerContext, warnings
   for path, lines in distro.locale_settings(ctx.config.locale, ctx.config.libc):
     write(lines, f"/mnt{path}", ctx.dry, ctx.ui)
 
+  # Create minimal dracut config before chroot to prevent i18n errors during kernel installation
+  cmd("mkdir -p /mnt/etc/dracut.conf.d", ctx.dry, ctx.ui)
+  cmd("echo 'omit_dracutmodules+=\"i18n\"' > /mnt/etc/dracut.conf.d/00-minimal.conf", ctx.dry, ctx.ui)
+
   generate_chroot(
     "/mnt/root/chroot.sh",
     ctx,
@@ -230,7 +234,6 @@ def step_3_system_installation_and_configuration(ctx: InstallerContext, warnings
 def step_4_cleanup(ctx: InstallerContext, _warnings: list[str]) -> None:
   assert ctx.ui is not None
   cmd("rm -rf /mnt/root/chroot.sh", ctx.dry, ctx.ui)
-  cmd("umount --recursive /mnt", ctx.dry, ctx.ui)
 
 
 def get_install_steps(ctx: InstallerContext) -> list[Callable[[InstallerContext, list[str]], None]]:

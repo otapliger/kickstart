@@ -9,7 +9,7 @@ Profiles are keyed by (distro_id, profile_name) for easy lookup.
 from typing import Final
 
 PROFILES: Final[dict[tuple[str, str], dict[str, object]]] = {
-  ("linux", "minimal"): {
+  ("linux", "test"): {
     "name": "Minimal System for testing",
     "description": "Linux installation for testing",
     "distro": "linux",
@@ -20,19 +20,6 @@ PROFILES: Final[dict[tuple[str, str], dict[str, object]]] = {
       "locale": "en_GB.UTF-8",
     },
     "packages": {"additional": [], "exclude": []},
-    "post_install_commands": [],
-  },
-  ("void", "minimal"): {
-    "name": "Minimal System",
-    "description": "Bare minimum Linux installation with only essential packages",
-    "distro": "void",
-    "config": {
-      "libc": "glibc",
-      "timezone": "Europe/London",
-      "keymap": "uk",
-      "locale": "en_GB.UTF-8",
-    },
-    "packages": {"additional": [], "exclude": ["fish-shell"]},
     "post_install_commands": [],
   },
   ("void", "niri"): {
@@ -95,7 +82,7 @@ def get_embedded_profile(distro_id: str, profile_name: str) -> dict[str, object]
 
   Args:
       distro_id: Distribution identifier (e.g., 'void', 'arch')
-      profile_name: Profile name without extension (e.g., 'niri', 'minimal')
+      profile_name: Profile name without extension (e.g., 'niri')
 
   Returns:
       Profile data as a dictionary, or None if not found

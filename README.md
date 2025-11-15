@@ -37,10 +37,10 @@ Profiles are JSON files that define installation configurations:
 
 ```bash
 # Embedded profile
-curl -fsSL https://plgr.tv/kickstart | sh -- -p minimal
+curl -fsSL https://plgr.tv/kickstart | sh -- -p niri
 
 # Local profile
-curl -fsSL https://plgr.tv/kickstart | sh -- -p example/path/minimal.json
+curl -fsSL https://plgr.tv/kickstart | sh -- -p /path/to/profile.json
 
 # Remote profile
 curl -fsSL https://plgr.tv/kickstart | sh -- -p https://example.com/profile.json
@@ -50,8 +50,8 @@ Example profile structure:
 
 ```json
 {
-  "name": "Minimal System",
-  "description": "Bare minimum installation",
+  "name": "Vim + Tmux",
+  "description": "Replace helix with vim + tmux",
   "distro": "void",
   "config": {
     "libc": "glibc",
@@ -61,7 +61,7 @@ Example profile structure:
   },
   "packages": {
     "additional": ["vim", "tmux"],
-    "exclude": ["fish-shell"]
+    "exclude": ["helix"]
   }
 }
 ```

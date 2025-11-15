@@ -77,7 +77,7 @@ def initramfs_config(crypt_uuid: str, luks_pass: str) -> str:
     echo "ENCRYPTED UUID={crypt_uuid} /boot/crypto.key luks,discard" >> /etc/crypttab
     chmod -R g-rwx,o-rwx /boot
 
-    dracut -f --omit i18n /boot/initramfs-linux.img
+    dracut -f /boot/initramfs-linux.img
   """)
 
 

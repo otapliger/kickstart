@@ -89,7 +89,7 @@ def _section_post_install(ctx: InstallerContext) -> str:
   commands.append(
     dedent(f"""\
       chsh --shell /bin/bash root
-      useradd --create-home --groups wheel,users,input,audio,video,network --shell /bin/fish {ctx.user_name}
+      useradd --create-home --groups wheel,users,input,audio,video,network --shell /bin/bash {ctx.user_name} || true
     """)
   )
 

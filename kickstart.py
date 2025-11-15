@@ -78,7 +78,7 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
         %(prog)s --dry                              # Preview installation steps
         %(prog)s --keymap fi --locale fi_FI.UTF-8   # Custom keymap and locale
         %(prog)s --timezone Europe/Lisbon           # Custom timezone
-        %(prog)s --profile minimal                  # Use embedded profile by name
+        %(prog)s --profile niri                     # Use embedded profile by name
 
       For more information, visit: https://github.com/otapliger/kickstart
     """),

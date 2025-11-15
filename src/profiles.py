@@ -163,7 +163,7 @@ class ProfileLoader:
     Load profile from source (profile name, file path, or HTTP URL).
 
     Args:
-        source: Profile name (e.g., 'minimal'), HTTP URL, or local file path
+        source: Profile name (e.g., 'niri'), HTTP URL, or local file path
         distro_id: Distribution ID for embedded profile lookup (required if source is a name)
 
     Returns:
