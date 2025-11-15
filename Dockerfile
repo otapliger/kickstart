@@ -29,7 +29,6 @@ COPY pyproject.toml uv.lock ./
 COPY kickstart.py ./
 COPY src ./src
 COPY config.json ./
-COPY profiles ./profiles
 
 # Create virtual environment and install build/runtime deps
 RUN uv venv && \
@@ -40,7 +39,6 @@ RUN .venv/bin/python -m nuitka \
     --onefile \
     --standalone \
     --assume-yes-for-downloads \
-    --include-data-dir=./profiles=profiles \
     --include-data-file=./config.json=config.json \
     --output-filename=kickstart \
     --output-dir=/app/dist \
