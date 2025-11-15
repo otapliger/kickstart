@@ -30,21 +30,9 @@ def _section_setup_commands(props: dict[str, str], distro_id: str, dry_mode: boo
   return "\n".join(commands) if commands else ""
 
 
-def _section_grub_install(crypt_uuid: str, distro_name: str) -> str:
-  return dedent(f"""\
-    mount --types efivarfs none /sys/firmware/efi/efivars
-
-    tee /etc/default/grub &> /dev/null << EOF
-    GRUB_CMDLINE_LINUX_DEFAULT="quiet rd.auto=1 rd.luks.name={crypt_uuid}=ENCRYPTED rd.luks.allow-discards={crypt_uuid}"
-    GRUB_CMDLINE_LINUX=""
-    GRUB_DEFAULT=0
-    GRUB_DISTRIBUTOR={distro_name}
-    GRUB_ENABLE_CRYPTODISK=yes
-    GRUB_TIMEOUT=10
-    EOF
-
-    grub-install --target=x86_64-efi --boot-directory=/boot --efi-directory=/boot/efi --bootloader-id={distro_name} --recheck
-  """)
+def _section_bootloader_install(crypt_uuid: str, distro_name: str, distro_id: str, dry_mode: bool) -> str:
+  distro = get_distro(distro_id, dry_mode)
+  return distro.bootloader_config(crypt_uuid, distro_name)
 
 
 def _get_package_list(ctx: InstallerContext, warnings: list[str]) -> list[str]:
@@ -137,7 +125,7 @@ def generate_chroot(
     _section_header(),
     _section_setup_commands(props, ctx.distro_id, ctx.dry),
     _section_initramfs_setup(crypt_uuid, luks_pass, ctx.distro_id, ctx.dry),
-    _section_grub_install(crypt_uuid, distro_name),
+    _section_bootloader_install(crypt_uuid, distro_name, ctx.distro_id, ctx.dry),
     _section_install_packages(ctx, warnings),
     _section_post_install(ctx),
   ]

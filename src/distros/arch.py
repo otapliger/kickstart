@@ -54,9 +54,21 @@ def setup_commands(props: dict[str, str]) -> list[str]:
 
 def initramfs_config(crypt_uuid: str, luks_pass: str) -> str:
   return dedent(f"""\
-    mkdir -p /etc
+    mkdir -p /etc/dracut.conf.d /etc/pacman.d/hooks
     dd if=/dev/urandom of=/boot/crypto.key bs=1024 count=4
     chmod 000 /boot/crypto.key
+
+    tee /etc/dracut.conf.d/10-crypt.conf &> /dev/null << EOF
+    install_items+=" /boot/crypto.key /etc/crypttab "
+    EOF
+
+    tee /etc/dracut.conf.d/20-modules.conf &> /dev/null << EOF
+    add_dracutmodules+=" crypt btrfs resume "
+    EOF
+
+    # Disable mkinitcpio pacman hooks to prevent conflicts with dracut
+    ln -sf /dev/null /etc/pacman.d/hooks/90-mkinitcpio-install.hook
+    ln -sf /dev/null /etc/pacman.d/hooks/60-mkinitcpio-remove.hook
 
     cryptsetup luksAddKey /dev/disk/by-partlabel/ENCRYPTED /boot/crypto.key << EOF
     {luks_pass}
@@ -65,14 +77,25 @@ def initramfs_config(crypt_uuid: str, luks_pass: str) -> str:
     echo "ENCRYPTED UUID={crypt_uuid} /boot/crypto.key luks,discard" >> /etc/crypttab
     chmod -R g-rwx,o-rwx /boot
 
-    sed -i '/^FILES=/c\\FILES=(/boot/crypto.key /etc/crypttab)' /etc/mkinitcpio.conf
-    sed -i '/^HOOKS=/c\\HOOKS=(base udev autodetect keyboard modconf block encrypt btrfs filesystems fsck)' /etc/mkinitcpio.conf
+    dracut -f --omit i18n /boot/initramfs-linux.img
+  """)
 
-    # Append lines if sed didn't find them (they may not exist in default mkinitcpio.conf)
-    grep -q '^FILES=' /etc/mkinitcpio.conf || echo 'FILES=(/boot/crypto.key /etc/crypttab)' >> /etc/mkinitcpio.conf
-    grep -q '^HOOKS=' /etc/mkinitcpio.conf || echo 'HOOKS=(base udev autodetect keyboard modconf block encrypt btrfs filesystems fsck)' >> /etc/mkinitcpio.conf
 
-    mkinitcpio -P
+def bootloader_config(crypt_uuid: str, distro_name: str) -> str:
+  return dedent(f"""\
+    mount --types efivarfs none /sys/firmware/efi/efivars
+
+    tee /etc/default/grub &> /dev/null << EOF
+    GRUB_CMDLINE_LINUX_DEFAULT="quiet rootflags=subvol=@ rd.auto=1 rd.luks.name={crypt_uuid}=ENCRYPTED rd.luks.allow-discards={crypt_uuid}"
+    GRUB_CMDLINE_LINUX=""
+    GRUB_DEFAULT=0
+    GRUB_DISTRIBUTOR={distro_name}
+    GRUB_ENABLE_CRYPTODISK=yes
+    GRUB_TIMEOUT=10
+    EOF
+
+    grub-install --target=x86_64-efi --boot-directory=/boot --efi-directory=/boot/efi --bootloader-id={distro_name} --recheck
+    grub-mkconfig -o /boot/grub/grub.cfg
   """)
 
 
@@ -83,6 +106,7 @@ def base_packages() -> list[str]:
     "chrony",
     "cryptsetup",
     "dhcpcd",
+    "dracut",
     "efibootmgr",
     "grub",
     "grub-btrfs",

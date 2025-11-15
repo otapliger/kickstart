@@ -92,6 +92,24 @@ def initramfs_config(crypt_uuid: str, luks_pass: str) -> str:
   """)
 
 
+def bootloader_config(crypt_uuid: str, distro_name: str) -> str:
+  return dedent(f"""\
+    mount --types efivarfs none /sys/firmware/efi/efivars
+
+    tee /etc/default/grub &> /dev/null << EOF
+    GRUB_CMDLINE_LINUX_DEFAULT="quiet rootflags=subvol=@ rd.auto=1 rd.luks.name={crypt_uuid}=ENCRYPTED rd.luks.allow-discards={crypt_uuid}"
+    GRUB_CMDLINE_LINUX=""
+    GRUB_DEFAULT=0
+    GRUB_DISTRIBUTOR={distro_name}
+    GRUB_ENABLE_CRYPTODISK=yes
+    GRUB_TIMEOUT=10
+    EOF
+
+    grub-install --target=x86_64-efi --boot-directory=/boot --efi-directory=/boot/efi --bootloader-id={distro_name} --recheck
+    grub-mkconfig -o /boot/grub/grub.cfg
+  """)
+
+
 def base_packages() -> list[str]:
   return [
     "base-devel",
