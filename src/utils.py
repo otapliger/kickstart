@@ -17,7 +17,7 @@ console = Console()
 
 
 class DefaultsConfig(TypedDict):
-  repository: str
+  repository: str | None
   timezone: str
   locale: str
   keymap: str
@@ -150,8 +150,12 @@ def set_user() -> tuple[str, str]:
     return user_name, user_pass
 
 
-def set_mirror(distro_id: str) -> str:
+def set_mirror(distro_id: str) -> str | None:
   default_repository = load_defaults(distro_id)["repository"]
+
+  if default_repository is None:
+    return None
+
   mirrors = load_mirrors(distro_id)
   if not mirrors:
     console.print("\n[prompt.invalid]No mirrors available. Using default.[/]")
@@ -177,7 +181,7 @@ def load_defaults(distro_id: str) -> DefaultsConfig:
       config_data = json.load(f)
       if "defaults" not in config_data or distro_id not in config_data["defaults"]:
         return DefaultsConfig(
-          repository="https://example.com/repo",
+          repository=None,
           timezone="Europe/London",
           locale="en_GB.UTF-8",
           keymap="uk",
@@ -188,10 +192,12 @@ def load_defaults(distro_id: str) -> DefaultsConfig:
       defaults_data = config_data["defaults"][distro_id]
       data = validate_defaults_json(defaults_data)
 
-      # Use dictionary comprehension to convert values to strings
-      # except ntp list
       return DefaultsConfig(
-        **{k: str(v) for k, v in data.items() if k != "ntp"},
+        repository=str(data["repository"]) if data.get("repository") is not None else None,
+        timezone=str(data["timezone"]),
+        locale=str(data["locale"]),
+        keymap=str(data["keymap"]),
+        libc=str(data["libc"]),
         ntp=[str(server) for server in data["ntp"]],
       )
 

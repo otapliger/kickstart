@@ -110,15 +110,17 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
     dest="libc",
   )
 
-  _ = parser.add_argument(
-    "-r",
-    "--repository",
-    metavar="URL",
-    type=str,
-    default=None,
-    help=f"override interactive mirror selection with specific repository URL [default: {defaults['repository']}]",
-    dest="repository",
-  )
+  # Only add repository flag if distro supports it
+  if defaults["repository"] is not None:
+    _ = parser.add_argument(
+      "-r",
+      "--repository",
+      metavar="URL",
+      type=str,
+      default=None,
+      help=f"override interactive mirror selection with specific repository URL [default: {defaults['repository']}]",
+      dest="repository",
+    )
 
   _ = parser.add_argument(
     "-t",

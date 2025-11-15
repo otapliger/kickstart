@@ -55,6 +55,7 @@ def step_0_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
   ctx.user_name, ctx.user_pass = set_user()
 
   # Select repository: profile > CLI > interactive
+  # Repository is only used for distros that support it (e.g., Void Linux)
   profile_repo = ctx.profile.config.repository if ctx.profile else None
 
   if profile_repo:
@@ -66,7 +67,11 @@ def step_0_settings(ctx: InstallerContext, _warnings: list[str]) -> None:
     console.print(f"\nUsing repository from command line: {ctx.repository}")
 
   else:
-    ctx.repository = set_mirror(ctx.distro_id)
+    defaults = load_defaults(ctx.distro_id)
+    if defaults["repository"] is not None:
+      ctx.repository = set_mirror(ctx.distro_id)
+    else:
+      ctx.repository = None
 
   console.print(f"\n[bold yellow]WARNING:[/] All data on {ctx.disk} will be erased.", style="bold")
   response = Confirm.ask("Are you sure you want to continue?", default=False)

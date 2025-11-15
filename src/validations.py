@@ -176,7 +176,7 @@ def validate_defaults_json(data: Any) -> dict[str, Any]:
   if not isinstance(data, dict):
     raise ValueError("Defaults JSON must be an object")
 
-  required_keys = {"repository", "timezone", "locale", "keymap", "libc", "ntp"}
+  required_keys = {"timezone", "locale", "keymap", "libc", "ntp"}
   missing_keys = required_keys - data.keys()
   if missing_keys:
     raise KeyError(f"Missing required keys: {missing_keys}")
