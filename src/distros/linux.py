@@ -1,4 +1,4 @@
-"""Generic distro module for dry mode with unsupported distributions."""
+"""Generic Linux distro module for dry mode."""
 
 
 def prepare_base_system() -> list[str]:
@@ -29,7 +29,7 @@ def locale_settings(_locale: str, _libc: str | None = None) -> list[tuple[str, l
   return []
 
 
-def timezone_settings(_keymap: str, _timezone: str | None = None) -> list[tuple[str, list[str]]]:
+def setup_commands(_props: dict[str, str]) -> list[str]:
   return []
 
 

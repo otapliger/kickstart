@@ -1,9 +1,11 @@
 """Distro adapter registry"""
 
+import sys
 from importlib import import_module
 from typing import cast
-import sys
+
 from rich.console import Console
+
 from src.distros.protocol import DistroProtocol
 
 console = Console()
@@ -16,7 +18,7 @@ def get_distro(distro_id: str, dry_mode: bool = False) -> DistroProtocol:
   Load and return the distro module for the given distro_id.
 
   Each distro module must implement the standard function interface.
-  In dry mode, falls back to generic module if distro not found.
+  In dry mode, falls back to linux module if distro not found.
   """
   try:
     module = import_module(f"src.distros.{distro_id}")
@@ -27,7 +29,7 @@ def get_distro(distro_id: str, dry_mode: bool = False) -> DistroProtocol:
 
   except ModuleNotFoundError:
     if dry_mode:
-      module = import_module("src.distros.generic")
+      module = import_module("src.distros.linux")
       module_as_object = cast(object, module)
       return cast(DistroProtocol, module_as_object)
 

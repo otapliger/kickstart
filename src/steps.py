@@ -1,20 +1,22 @@
 import subprocess
 import sys
 from typing import Callable
+
 from rich.console import Console
 from rich.prompt import Confirm
-from src.context import InstallerContext
+
 from src.chroot import generate_chroot
+from src.context import InstallerContext
 from src.distros import get_distro
 from src.utils import (
   cmd,
+  load_defaults,
   scmd,
-  write,
   set_disk,
   set_host,
-  set_user,
   set_mirror,
-  load_defaults,
+  set_user,
+  write,
 )
 
 console = Console()
@@ -199,12 +201,6 @@ def step_3_system_installation_and_configuration(ctx: InstallerContext, warnings
   for path, lines in distro.locale_settings(ctx.config.locale, ctx.config.libc):
     write(lines, f"/mnt{path}", ctx.dry, ctx.ui)
 
-  for path, lines in distro.timezone_settings(ctx.config.keymap, ctx.config.timezone):
-    write(lines, f"/mnt{path}", ctx.dry, ctx.ui)
-
-  if ctx.config.libc == "glibc":
-    cmd(distro.reconfigure_locale(), ctx.dry, ctx.ui)
-
   generate_chroot(
     "/mnt/root/chroot.sh",
     ctx,
@@ -220,6 +216,10 @@ def step_3_system_installation_and_configuration(ctx: InstallerContext, warnings
   cmd("mount --types proc none /mnt/proc", ctx.dry, ctx.ui)
   cmd("mount --rbind /run /mnt/run", ctx.dry, ctx.ui)
   cmd("mount --rbind /dev /mnt/dev", ctx.dry, ctx.ui)
+
+  if ctx.config.libc == "glibc":
+    cmd(distro.reconfigure_locale(), ctx.dry, ctx.ui)
+
   cmd("chroot /mnt /bin/bash -x /root/chroot.sh", ctx.dry, ctx.ui)
   assert ctx.user_name is not None
   assert ctx.user_pass is not None

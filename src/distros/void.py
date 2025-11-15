@@ -2,6 +2,7 @@
 
 import json
 from textwrap import dedent
+
 from src.utils import get_resource_path
 
 
@@ -49,7 +50,7 @@ def enable_services(services: list[str]) -> str:
 
 def locale_settings(locale: str, libc: str | None = None) -> list[tuple[str, list[str]]]:
   files = [
-    ("/etc/locale.conf", [f"export {var}={locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]]),
+    ("/etc/locale.conf", [f"{var}={locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]]),
   ]
 
   if (libc or _load_void_defaults()["libc"]) == "glibc":
@@ -58,16 +59,13 @@ def locale_settings(locale: str, libc: str | None = None) -> list[tuple[str, lis
   return files
 
 
-def timezone_settings(keymap: str, timezone: str | None = None) -> list[tuple[str, list[str]]]:
+def setup_commands(props: dict[str, str]) -> list[str]:
+  timezone = props.get("timezone") or _load_void_defaults()["timezone"]
+  keymap = props.get("keymap") or _load_void_defaults()["keymap"]
   return [
-    (
-      "/etc/rc.conf",
-      [
-        f'TIMEZONE="{timezone or _load_void_defaults()["timezone"]}"',
-        'HARDWARECLOCK="UTC"',
-        f'KEYMAP="{keymap}"',
-      ],
-    ),
+    f"echo 'TIMEZONE=\"{timezone}\"' > /etc/rc.conf",
+    "echo 'HARDWARECLOCK=\"UTC\"' >> /etc/rc.conf",
+    f"echo 'KEYMAP=\"{keymap}\"' >> /etc/rc.conf",
   ]
 
 

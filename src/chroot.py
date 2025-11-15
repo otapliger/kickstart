@@ -1,12 +1,14 @@
+import json
 import os
 import subprocess
-import json
+from textwrap import dedent
+
 from rich.console import Console
-from src.utils import get_gpu_packages, get_resource_path
+
 from src.context import InstallerContext
 from src.distros import get_distro
 from src.tui import TUI
-from textwrap import dedent
+from src.utils import get_gpu_packages, get_resource_path
 
 console = Console()
 
@@ -17,9 +19,15 @@ def _section_header() -> str:
   """)
 
 
-def _section_luks_key_setup(crypt_uuid: str, luks_pass: str, distro_id: str, dry_mode: bool) -> str:
+def _section_initramfs_setup(crypt_uuid: str, luks_pass: str, distro_id: str, dry_mode: bool) -> str:
   distro = get_distro(distro_id, dry_mode)
   return distro.initramfs_config(crypt_uuid, luks_pass)
+
+
+def _section_setup_commands(props: dict[str, str], distro_id: str, dry_mode: bool) -> str:
+  distro = get_distro(distro_id, dry_mode)
+  commands = distro.setup_commands(props)
+  return "\n".join(commands) if commands else ""
 
 
 def _section_grub_install(crypt_uuid: str, distro_name: str) -> str:
@@ -124,9 +132,11 @@ def generate_chroot(
       text=True,
     ).stdout.strip()
   )
+  props = {"timezone": ctx.config.timezone, "keymap": ctx.config.keymap}
   parts: list[str] = [
     _section_header(),
-    _section_luks_key_setup(crypt_uuid, luks_pass, ctx.distro_id, ctx.dry),
+    _section_setup_commands(props, ctx.distro_id, ctx.dry),
+    _section_initramfs_setup(crypt_uuid, luks_pass, ctx.distro_id, ctx.dry),
     _section_grub_install(crypt_uuid, distro_name),
     _section_install_packages(ctx, warnings),
     _section_post_install(ctx),

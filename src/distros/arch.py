@@ -38,15 +38,17 @@ def enable_services(services: list[str]) -> str:
 # Arch supports only glibc, so libc parameter is ignored
 def locale_settings(locale: str, _libc: str | None = None) -> list[tuple[str, list[str]]]:
   return [
-    ("/etc/locale.conf", [f"export {var}={locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]]),
-    ("/etc/locale.gen", [locale]),
+    ("/etc/locale.conf", [f"{var}={locale}" for var in ["LANG", "LANGUAGE", "LC_ALL"]]),
+    ("/etc/locale.gen", [f"{locale} UTF-8"]),
   ]
 
 
-# Arch handles timezone via symlink to /usr/share/zoneinfo, so timezone parameter is ignored
-def timezone_settings(keymap: str, _timezone: str | None = None) -> list[tuple[str, list[str]]]:
+def setup_commands(props: dict[str, str]) -> list[str]:
+  timezone = props.get("timezone", "UTC")
+  keymap = props.get("keymap", "us")
   return [
-    ("/etc/vconsole.conf", [f"KEYMAP={keymap}"]),
+    f"ln -sf /usr/share/zoneinfo/{timezone} /etc/localtime",
+    f"echo 'KEYMAP={keymap}' > /etc/vconsole.conf",
   ]
 
 
@@ -63,8 +65,13 @@ def initramfs_config(crypt_uuid: str, luks_pass: str) -> str:
     echo "ENCRYPTED UUID={crypt_uuid} /boot/crypto.key luks,discard" >> /etc/crypttab
     chmod -R g-rwx,o-rwx /boot
 
-    sed -i 's|^FILES=.*|FILES=(/boot/crypto.key)|' /etc/mkinitcpio.conf
-    sed -i 's|^HOOKS=.*|HOOKS=(base udev autodetect keyboard keymap modconf block encrypt btrfs filesystems fsck)|' /etc/mkinitcpio.conf
+    sed -i '/^FILES=/c\\FILES=(/boot/crypto.key /etc/crypttab)' /etc/mkinitcpio.conf
+    sed -i '/^HOOKS=/c\\HOOKS=(base udev autodetect keyboard modconf block encrypt btrfs filesystems fsck)' /etc/mkinitcpio.conf
+
+    # Append lines if sed didn't find them (they may not exist in default mkinitcpio.conf)
+    grep -q '^FILES=' /etc/mkinitcpio.conf || echo 'FILES=(/boot/crypto.key /etc/crypttab)' >> /etc/mkinitcpio.conf
+    grep -q '^HOOKS=' /etc/mkinitcpio.conf || echo 'HOOKS=(base udev autodetect keyboard modconf block encrypt btrfs filesystems fsck)' >> /etc/mkinitcpio.conf
+
     mkinitcpio -P
   """)
 
