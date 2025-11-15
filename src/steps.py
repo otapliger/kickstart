@@ -186,10 +186,6 @@ def step_3_system_installation_and_configuration(ctx: InstallerContext, warnings
   for path, lines in distro.locale_settings(ctx.config.locale, ctx.config.libc):
     write(lines, f"/mnt{path}", ctx.dry, ctx.ui)
 
-  # Create minimal dracut config before chroot to prevent i18n errors during kernel installation
-  cmd("mkdir -p /mnt/etc/dracut.conf.d", ctx.dry, ctx.ui)
-  cmd("echo 'omit_dracutmodules+=\"i18n\"' > /mnt/etc/dracut.conf.d/00-minimal.conf", ctx.dry, ctx.ui)
-
   generate_chroot(
     "/mnt/root/chroot.sh",
     ctx,

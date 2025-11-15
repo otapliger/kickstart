@@ -4,7 +4,10 @@ from textwrap import dedent
 
 
 def prepare_base_system() -> list[str]:
-  return []
+  return [
+    "mkdir -p /mnt/etc/dracut.conf.d",
+    "echo 'omit_dracutmodules+=\" i18n \"' > /mnt/etc/dracut.conf.d/00-minimal.conf",
+  ]
 
 
 def install_base_system(packages: list[str]) -> str:
