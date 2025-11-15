@@ -51,6 +51,7 @@ def _build_kickstart_logo(logo: str, tagline_style: str, tagline_text: str) -> s
 
 
 def print_logo(distro_id: str) -> None:
+  console.clear()
   logos = {
     "arch": _build_kickstart_logo(_arch_logo, "blue", "Arch Linux installer, simplified."),
     "void": _build_kickstart_logo(_void_logo, "green", "Void Linux installer, simplified."),
