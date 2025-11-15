@@ -4,6 +4,7 @@ Embedded profile registry for distribution as a single binary.
 This module stores profile data as Python constants, allowing profiles
 to be compiled into the Nuitka binary without needing external files.
 Profiles are keyed by (distro_id, profile_name) for easy lookup.
+The distro field is injected from the tuple key when retrieved.
 """
 
 from typing import Final
@@ -12,7 +13,6 @@ PROFILES: Final[dict[tuple[str, str], dict[str, object]]] = {
   ("linux", "test"): {
     "name": "Minimal System for testing",
     "description": "Linux installation for testing",
-    "distro": "linux",
     "config": {
       "libc": "glibc",
       "timezone": "Europe/London",
@@ -25,7 +25,6 @@ PROFILES: Final[dict[tuple[str, str], dict[str, object]]] = {
   ("void", "niri"): {
     "name": "Niri Wayland",
     "description": "Niri compositor with multimedia support",
-    "distro": "void",
     "config": {
       "libc": "glibc",
       "timezone": "Europe/London",
@@ -75,7 +74,6 @@ PROFILES: Final[dict[tuple[str, str], dict[str, object]]] = {
   ("arch", "niri"): {
     "name": "Niri Wayland",
     "description": "Niri compositor with multimedia support",
-    "distro": "arch",
     "config": {
       "libc": "glibc",
       "timezone": "Europe/London",
@@ -122,14 +120,19 @@ def get_embedded_profile(distro_id: str, profile_name: str) -> dict[str, object]
   """
   Get an embedded profile by distro_id and profile name.
 
+  The distro field is automatically injected from the tuple key.
+
   Args:
       distro_id: Distribution identifier (e.g., 'void', 'arch')
       profile_name: Profile name without extension (e.g., 'niri')
 
   Returns:
-      Profile data as a dictionary, or None if not found
+      Profile data as a dictionary with distro field injected, or None if not found
   """
-  return PROFILES.get((distro_id, profile_name))
+  profile_data = PROFILES.get((distro_id, profile_name))
+  if profile_data is not None:
+    return {**profile_data, "distro": distro_id}
+  return None
 
 
 def list_profiles_for_distro(distro_id: str) -> list[str]:
