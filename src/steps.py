@@ -231,12 +231,4 @@ def get_install_steps(ctx: InstallerContext) -> list[Callable[[InstallerContext,
     step_4_cleanup,
   ]
 
-  # Skip system bootstrap and configuration for generic distro
-  if ctx.distro_id == "linux":
-    return [
-      step_0_settings,
-      step_1_disk_setup,
-      step_4_cleanup,
-    ]
-
   return all_steps

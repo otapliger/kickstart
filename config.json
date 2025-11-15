@@ -39,11 +39,25 @@
       "unzip",
       "vpm",
       "zip"
+    ],
+    "arch": [
+      "bat",
+      "cmake",
+      "curl",
+      "ffmpeg",
+      "fish",
+      "git",
+      "helix",
+      "ninja",
+      "ripgrep",
+      "unzip",
+      "zip"
     ]
   },
   "gpu_packages": {
     "void": {
       "amd": [
+        "linux-firmware-amd",
         "mesa-dri",
         "mesa-vaapi",
         "mesa-vdpau",
@@ -53,12 +67,41 @@
       "intel": [
         "intel-media-driver",
         "intel-video-accel",
+        "linux-firmware-intel",
         "mesa-dri",
         "mesa-vulkan-intel",
         "vulkan-loader"
       ],
-      "nvidia": ["nvidia", "nvidia-libs", "vulkan-loader"],
+      "nvidia": [
+        "linux-firmware-nvidia",
+        "nvidia",
+        "nvidia-libs",
+        "vulkan-loader"
+      ],
       "unknown": ["mesa-dri", "vulkan-loader"]
+    },
+    "arch": {
+      "amd": [
+        "linux-firmware-amdgpu",
+        "mesa",
+        "vulkan-icd-loader",
+        "vulkan-radeon"
+      ],
+      "intel": [
+        "intel-media-driver",
+        "libva-intel-driver",
+        "linux-firmware-intel",
+        "mesa",
+        "vulkan-icd-loader",
+        "vulkan-intel"
+      ],
+      "nvidia": [
+        "linux-firmware-nvidia",
+        "nvidia",
+        "nvidia-utils",
+        "vulkan-icd-loader"
+      ],
+      "unknown": ["mesa", "vulkan-icd-loader"]
     }
   }
 }
