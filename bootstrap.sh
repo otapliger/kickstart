@@ -94,7 +94,7 @@ run_kickstart() {
 
   # Keep the binary around while running it
   CLEANUP_ON_EXIT=false
-  exec ./kickstart "$@"
+  exec ./kickstart "$@" < /dev/tty
 }
 
 check_requirements
