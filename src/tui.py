@@ -11,14 +11,6 @@ from rich.text import Text
 
 console = Console()
 
-STEP_PREFIXES = {
-  "Settings": "* ",
-  "Disk Setup": "# ",
-  "System Bootstrap": "^ ",
-  "System Installation And Configuration": "@ ",
-  "Cleanup": "~ ",
-}
-
 DISTRO_COLORS = {
   "arch": {"text": "bold blue", "border": "blue"},
   "void": {"text": "bold green", "border": "green"},
@@ -62,8 +54,7 @@ class TUI:
     if not self.initialized:
       return
 
-    prefix = STEP_PREFIXES.get(step_name)
-    self.status_text = f"{prefix}{message}"
+    self.status_text = f"{message}"
 
     if self.live is None:
       # Initialize Live display on first call (step 1)
