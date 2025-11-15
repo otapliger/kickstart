@@ -1,19 +1,23 @@
 """
 Profile management system for kickstart.
 
-Supports loading installation profiles from local files or HTTP URLs.
+Supports loading installation profiles from local files, HTTP URLs, or embedded profiles.
 Profiles define predefined configurations that can override defaults
 and specify package selections, custom settings, and installation behavior.
 """
 
 from __future__ import annotations
-import urllib.request
-import urllib.error
+
 import json
+import urllib.error
+import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import cast
+
 from rich.console import Console
+
+from src.registry import get_embedded_profile
 from src.validations import validate_profile_json
 
 console = Console()
@@ -154,12 +158,13 @@ class ProfileLoader:
       raise ValueError(f"Failed to read profile file: {e}") from e
 
   @classmethod
-  def load(cls, source: str) -> InstallationProfile:
+  def load(cls, source: str, distro_id: str | None = None) -> InstallationProfile:
     """
-    Load profile from source (URL or file path).
+    Load profile from source (profile name, file path, or HTTP URL).
 
     Args:
-        source: HTTP URL starting with http:// or https://, or local file path
+        source: Profile name (e.g., 'minimal'), HTTP URL, or local file path
+        distro_id: Distribution ID for embedded profile lookup (required if source is a name)
 
     Returns:
         InstallationProfile object
@@ -168,9 +173,21 @@ class ProfileLoader:
         ValueError: If profile cannot be loaded or is invalid
     """
     try:
+      if distro_id and not source.startswith(("http://", "https://", "/", "./")):
+        data = get_embedded_profile(distro_id, source)
+        if data:
+          validation_issues = validate_profile_json(data)
+          if validation_issues:
+            console.print(f"\n[prompt.invalid]Profile validation failed for '{source}':[/]")
+            for issue in validation_issues:
+              console.print(f" • {issue}")
+            raise ValueError(f"Profile contains {len(validation_issues)} validation error(s)")
+
+          profile = InstallationProfile.from_dict(data)
+          return profile
+
       if source.startswith(("http://", "https://")):
         data = cls._load_from_url(source)
-
       else:
         data = cls._load_from_file(source)
 

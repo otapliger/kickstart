@@ -116,13 +116,18 @@ def validate_hostname(hostname: str) -> bool:
   return all(is_valid_label(label) for label in labels)
 
 
-def validate_profile(source: str) -> bool:
-  """Validate profile source path or URL. Returns True if valid, False if invalid."""
+def validate_profile(source: str, distro_id: str | None = None) -> bool:
+  """Validate profile source (name, path, or URL). Returns True if valid, False if invalid."""
   if source.startswith(("http://", "https://")):
     return True
 
-  else:
-    return Path(source).exists()
+  if distro_id and not source.startswith(("http://", "https://", "/", "./")):
+    from src.registry import get_embedded_profile
+
+    if get_embedded_profile(distro_id, source):
+      return True
+
+  return Path(source).exists()
 
 
 def validate_profile_json(data: dict[str, object]) -> list[str]:
@@ -204,6 +209,7 @@ def validate_cli_arguments(
   libc: str,
   hostname: str | None = None,
   profile: str | None = None,
+  distro_id: str | None = None,
 ) -> list[str]:
   """
   Validate all command line arguments and return list of error messages.
@@ -224,6 +230,6 @@ def validate_cli_arguments(
     validators.append((validate_hostname(hostname), f"Invalid hostname: {hostname} (must follow RFC 1123 format)"))
 
   if profile:
-    validators.append((validate_profile(profile), f"Profile file not found: {profile}"))
+    validators.append((validate_profile(profile, distro_id), f"Profile not found: {profile}"))
 
   return [msg for valid, msg in validators if not valid]

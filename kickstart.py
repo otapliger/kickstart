@@ -78,7 +78,7 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
         %(prog)s --dry                              # Preview installation steps
         %(prog)s --keymap fi --locale fi_FI.UTF-8   # Custom keymap and locale
         %(prog)s --timezone Europe/Lisbon           # Custom timezone
-        %(prog)s --profile ./profiles/minimal.json  # Use local profile
+        %(prog)s --profile minimal                  # Use embedded profile by name
 
       For more information, visit: https://github.com/otapliger/kickstart
     """),
@@ -95,9 +95,9 @@ def _create_argument_parser(defaults: DefaultsConfig) -> argparse.ArgumentParser
   _ = parser.add_argument(
     "-p",
     "--profile",
-    metavar="SOURCE",
+    metavar="PROFILE",
     type=str,
-    help="load installation profile from local file path or HTTP URL",
+    help="load installation profile by name, file path, or HTTP URL",
     dest="profile",
   )
 
@@ -226,7 +226,7 @@ def main() -> None:
   profile = None
   if config.dry and config.profile:
     try:
-      profile = ProfileLoader.load(config.profile)
+      profile = ProfileLoader.load(config.profile, distro_id)
       distro_id = profile.distro
       distro_name = profile.distro.capitalize()
       defaults = load_defaults(distro_id)
@@ -241,6 +241,7 @@ def main() -> None:
     libc=config.libc,
     hostname=config.hostname,
     profile=config.profile,
+    distro_id=distro_id,
   )
 
   if errors:
@@ -261,7 +262,7 @@ def main() -> None:
       ctx.profile = profile
     else:
       try:
-        ctx.profile = ProfileLoader.load(config.profile)
+        ctx.profile = ProfileLoader.load(config.profile, distro_id)
 
         if ctx.profile.distro != ctx.distro_id:
           msg = f"Profile distro mismatch - profile requires '{ctx.profile.distro}' but system is '{ctx.distro_id}'"
