@@ -12,13 +12,13 @@ def prepare_base_system() -> list[str]:
 
 def install_base_system(packages: list[str]) -> str:
   pkgs = " ".join(packages)
-  return f"xbps-install -Sy -r /mnt {pkgs}"
+  return f"xbps-install -Sy -R https://repo-default.voidlinux.org/current -r /mnt {pkgs}"
 
 
 def install_packages(packages: list[str]) -> str:
   pkgs = " ".join(packages)
   return dedent(f"""\
-    yes | xbps-install -USy {pkgs}
+    yes | xbps-install -USy -R https://repo-default.voidlinux.org/current {pkgs}
   """)
 
 
