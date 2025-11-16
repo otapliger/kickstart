@@ -41,7 +41,7 @@ def locale_settings(locale: str, libc: str | None = None) -> list[tuple[str, lis
   ]
 
   if libc == "glibc":
-    files.append(("/etc/default/libc-locales", [locale]))
+    files.append(("/etc/default/libc-locales", [f"{locale} UTF-8"]))
 
   return files
 
