@@ -18,12 +18,8 @@ def install_base_system(packages: list[str]) -> str:
 def install_packages(packages: list[str]) -> str:
   pkgs = " ".join(packages)
   return dedent(f"""\
-    yes | xbps-install -USy -R https://repo-default.voidlinux.org/current {pkgs}
+    yes | xbps-install -Sy -R https://repo-default.voidlinux.org/current {pkgs}
   """)
-
-
-def reconfigure_system() -> str:
-  return "xbps-reconfigure --force --all"
 
 
 def reconfigure_locale() -> str:
@@ -47,8 +43,8 @@ def locale_settings(locale: str, libc: str | None = None) -> list[tuple[str, lis
 
 
 def setup_commands(props: dict[str, str]) -> list[str]:
-  timezone = props.get("timezone", "UTC")
-  keymap = props.get("keymap", "us")
+  timezone = props.get("timezone", "Europe/London")
+  keymap = props.get("keymap", "uk")
   return [
     f"echo 'TIMEZONE=\"{timezone}\"' > /etc/rc.conf",
     "echo 'HARDWARECLOCK=\"UTC\"' >> /etc/rc.conf",
@@ -94,6 +90,7 @@ def bootloader_config(crypt_uuid: str, distro_name: str) -> str:
 
     grub-install --target=x86_64-efi --boot-directory=/boot --efi-directory=/boot/efi --bootloader-id={distro_name} --recheck
     grub-mkconfig -o /boot/grub/grub.cfg
+    xbps-reconfigure --force --all
   """)
 
 
@@ -105,6 +102,7 @@ def base_packages() -> list[str]:
     "cryptsetup",
     "dhcpcd",
     "efibootmgr",
+    "elogind",
     "grub-btrfs",
     "grub-x86_64-efi",
     "linux",
@@ -114,4 +112,4 @@ def base_packages() -> list[str]:
 
 
 def default_services() -> list[str]:
-  return ["chronyd", "dhcpcd", "grub-btrfs", "ufw"]
+  return ["chronyd", "dbus", "dhcpcd", "elogind", "grub-btrfs", "ufw"]

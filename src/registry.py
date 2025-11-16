@@ -36,7 +36,6 @@ PROFILES: Final[dict[tuple[str, str], dict[str, object]]] = {
         "Thunar",
         "alacritty",
         "dunst",
-        "elogind",
         "firefox",
         "fuzzel",
         "libnotify",
@@ -65,8 +64,6 @@ PROFILES: Final[dict[tuple[str, str], dict[str, object]]] = {
       "exclude": [],
     },
     "post_install_commands": [
-      "ln -sf /etc/sv/dbus /var/service/",
-      "ln -sf /etc/sv/elogind /var/service/",
       "ln -sf /etc/sv/pipewire /var/service/",
       "ln -sf /etc/sv/wireplumber /var/service/",
     ],

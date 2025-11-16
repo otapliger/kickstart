@@ -71,10 +71,6 @@ def _section_post_install(ctx: InstallerContext) -> str:
   commands = []
   distro = get_distro(ctx.distro_id, ctx.dry)
 
-  reconfigure_cmd = distro.reconfigure_system()
-  if reconfigure_cmd:
-    commands.append(f"{reconfigure_cmd}\n")
-
   services = distro.default_services()
   if services:
     commands.append(f"{distro.enable_services(services)}\n")
@@ -123,10 +119,10 @@ def generate_chroot(
   props = {"timezone": ctx.config.timezone, "keymap": ctx.config.keymap}
   parts: list[str] = [
     _section_header(),
+    _section_install_packages(ctx, warnings),
     _section_setup_commands(props, ctx.distro_id, ctx.dry),
     _section_initramfs_setup(crypt_uuid, luks_pass, ctx.distro_id, ctx.dry),
     _section_bootloader_install(crypt_uuid, distro_name, ctx.distro_id, ctx.dry),
-    _section_install_packages(ctx, warnings),
     _section_post_install(ctx),
   ]
   if dry_run:

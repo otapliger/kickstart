@@ -157,8 +157,8 @@ def _create_context_config(args: Namespace) -> ContextConfig:
   return ContextConfig(
     dry=bool(getattr(args, "dry", False)),
     libc=str(getattr(args, "libc", "glibc")),
-    timezone=str(getattr(args, "timezone", "UTC")),
-    keymap=str(getattr(args, "keymap", "us")),
+    timezone=str(getattr(args, "timezone", "Europe/London")),
+    keymap=str(getattr(args, "keymap", "uk")),
     locale=str(getattr(args, "locale", "C")),
     hostname=getattr(args, "hostname", None),
     profile=getattr(args, "profile", None),

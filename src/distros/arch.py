@@ -5,8 +5,9 @@ from textwrap import dedent
 
 def prepare_base_system() -> list[str]:
   return [
-    "mkdir -p /mnt/etc/dracut.conf.d",
-    "echo 'omit_dracutmodules+=\" i18n \"' > /mnt/etc/dracut.conf.d/00-minimal.conf",
+    "mkdir -p /mnt/etc/dracut.conf.d /mnt/etc/pacman.d/hooks",
+    "ln -sf /dev/null /mnt/etc/pacman.d/hooks/90-mkinitcpio-install.hook",
+    "ln -sf /dev/null /mnt/etc/pacman.d/hooks/60-mkinitcpio-remove.hook",
   ]
 
 
@@ -18,10 +19,6 @@ def install_base_system(packages: list[str]) -> str:
 def install_packages(packages: list[str]) -> str:
   pkgs = " ".join(packages)
   return f"pacman -Syu --noconfirm {pkgs}"
-
-
-def reconfigure_system() -> str:
-  return ""
 
 
 def reconfigure_locale() -> str:
@@ -41,8 +38,8 @@ def locale_settings(locale: str, _libc: str | None = None) -> list[tuple[str, li
 
 
 def setup_commands(props: dict[str, str]) -> list[str]:
-  timezone = props.get("timezone", "UTC")
-  keymap = props.get("keymap", "us")
+  timezone = props.get("timezone", "Europe/London")
+  keymap = props.get("keymap", "uk")
   return [
     f"ln -sf /usr/share/zoneinfo/{timezone} /etc/localtime",
     f"echo 'KEYMAP={keymap}' > /etc/vconsole.conf",
@@ -51,7 +48,7 @@ def setup_commands(props: dict[str, str]) -> list[str]:
 
 def initramfs_config(crypt_uuid: str, luks_pass: str) -> str:
   return dedent(f"""\
-    mkdir -p /etc/dracut.conf.d /etc/pacman.d/hooks
+    mkdir -p /etc/dracut.conf.d
     dd if=/dev/urandom of=/boot/crypto.key bs=1024 count=4
     chmod 000 /boot/crypto.key
 
@@ -62,10 +59,6 @@ def initramfs_config(crypt_uuid: str, luks_pass: str) -> str:
     tee /etc/dracut.conf.d/20-modules.conf &> /dev/null << EOF
     add_dracutmodules+=" crypt btrfs resume "
     EOF
-
-    # Disable mkinitcpio pacman hooks to prevent conflicts with dracut
-    ln -sf /dev/null /etc/pacman.d/hooks/90-mkinitcpio-install.hook
-    ln -sf /dev/null /etc/pacman.d/hooks/60-mkinitcpio-remove.hook
 
     cryptsetup luksAddKey /dev/disk/by-partlabel/ENCRYPTED /boot/crypto.key << EOF
     {luks_pass}

@@ -15,10 +15,6 @@ def install_packages(packages: list[str]) -> str:
   return f"{pkgs}"
 
 
-def reconfigure_system() -> str:
-  return ""
-
-
 def reconfigure_locale() -> str:
   return ""
 
