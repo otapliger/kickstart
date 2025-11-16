@@ -1,52 +1,44 @@
 # kickstart
 
-Automated installer for Linux distributions with encrypted BTRFS and sensible defaults.
+Automated installer for Linux distributions with encrypted BTRFS.
 
-> **WARNING**: This installer is DESTRUCTIVE and will wipe the selected disk. Always use `--dry` first.
+> **WARNING**: Destructive operation. Always use `--dry` first.
 
-## Supported Distros
+## Supported
 
-- **Void Linux**
-- **Arch Linux** - ⚠️ installer not yet functional, work in progress
+- Void Linux
+- Arch Linux
 
-## Features
+## Quick Start
 
-- **Encryption**: LUKS1-on-BTRFS root filesystem
-- **Boot**: EFI with GRUB
-- **Subvolumes**: `@`, `@home`, `@snapshots`, `@var_cache`, `@var_log`
-- **Packages**: Curated selection with GPU driver detection
-- **Profiles**: JSON-based configurations (local files or URLs)
+```bash
+# Preview installation
+curl -fsSL https://plgr.tv/kickstart | sh -- --dry
+
+# Install with profile
+curl -fsSL https://plgr.tv/kickstart | sh -- -p niri
+
+# Install with custom settings
+curl -fsSL https://plgr.tv/kickstart | sh -- -k us -t America/Chicago
+```
 
 ## Options
 
 ```
 -d, --dry              Preview mode (no changes)
--p, --profile SOURCE   Load profile from file or URL
--r, --repository URL   Override mirror selection
+-p, --profile SOURCE   Profile: name, file path, or URL
+-r, --repository URL   Override mirror
 -k, --keymap KEYMAP    Keyboard layout
--t, --timezone TZ      System timezone
---hostname NAME        System hostname
---locale LOCALE        System locale
---libc LIBC            C library
+-t, --timezone TZ      Timezone
+--hostname NAME        Hostname
+--locale LOCALE        Locale
+--libc LIBC            C library (void only)
 --version              Show version
 ```
 
 ## Profiles
 
-Profiles are JSON files that define installation configurations:
-
-```bash
-# Embedded profile
-curl -fsSL https://plgr.tv/kickstart | sh -- -p niri
-
-# Local profile
-curl -fsSL https://plgr.tv/kickstart | sh -- -p /path/to/profile.json
-
-# Remote profile
-curl -fsSL https://plgr.tv/kickstart | sh -- -p https://example.com/profile.json
-```
-
-Example profile structure:
+JSON files defining installation configuration. Can be embedded names, local files, or URLs.
 
 ```json
 {
@@ -66,17 +58,21 @@ Example profile structure:
 }
 ```
 
-## Configuration
+## What It Does
 
-The installer uses `config.json` for defaults, mirrors, and package lists per distro.
+- Creates LUKS1-encrypted BTRFS root filesystem
+- Sets up EFI boot with GRUB
+- Configures subvolumes: `@`, `@home`, `@snapshots`, `@var_cache`, `@var_log`
+- Installs curated packages with GPU driver detection
+- Applies profile customizations
 
 ## Safety
 
-1. Run dry mode first
-2. Disconnect non-target drives
-3. Verify target disk path
-4. Review planned steps before proceeding
+1. Use `--dry` first
+2. Disconnect other drives
+3. Verify target disk
+4. Review planned steps
 
 ## License
 
-See LICENSE file. Use at your own risk.
+MIT. Use at your own risk.
