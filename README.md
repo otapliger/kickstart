@@ -2,12 +2,12 @@
 
 Automated installer for Linux distributions with encrypted BTRFS.
 
-> **WARNING**: Destructive operation. Always use `--dry` first.
+> **WARNING**: Destructive operation. Always use `--dry` first. Use at your own risk.
 
 ## Supported
 
-- Void Linux
 - Arch Linux
+- Void Linux
 
 ## Quick Start
 
@@ -75,4 +75,4 @@ JSON files defining installation configuration. Can be embedded names, local fil
 
 ## License
 
-MIT. Use at your own risk.
+GPL-3.0
