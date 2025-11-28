@@ -1,7 +1,13 @@
+# Python (legacy)
 .python-version
 __pycache__
 *.py[cod]
 *$py.class
+
+# Go
+/kickstart
+*.exe
+go.sum
 
 # Environments
 .env
@@ -9,8 +15,9 @@ __pycache__
 env/
 venv/
 
-# VS Code
+# IDE
 .vscode/
+.idea/
 
 # macOS
 .DS_Store
@@ -34,3 +41,4 @@ $RECYCLE.BIN/
 # Build artifacts
 dist/
 build/
+bin/
