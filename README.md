@@ -13,13 +13,13 @@ Automated installer for Linux distributions with encrypted BTRFS.
 
 ```bash
 # Preview installation
-curl -fsSL https://plgr.tv/kickstart | sh -- --dry
+curl -fsSL https://plgr.tv/kickstart | sh -s -- --dry
 
 # Install with profile
-curl -fsSL https://plgr.tv/kickstart | sh -- -p niri
+curl -fsSL https://plgr.tv/kickstart | sh -s -- -p niri
 
 # Install with custom settings
-curl -fsSL https://plgr.tv/kickstart | sh -- -k us -t America/Chicago
+curl -fsSL https://plgr.tv/kickstart | sh -s -- -k us -t America/Chicago
 ```
 
 ## Options
